@@ -8,10 +8,12 @@ Aquí no se interpreta nada: una página que falla se guarda como falla.
 
 from __future__ import annotations
 
+import http.client
 import json
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from datetime import UTC, datetime
 from http.cookiejar import CookieJar
 from pathlib import Path
@@ -67,7 +69,7 @@ def capturar_brujula(landing: Path, url: str, brokers: list[str], clave: str) ->
     return tanda.name
 
 
-def _iniciar_sesion(tanda: Path, url: str, broker: str, clave: str):
+def _iniciar_sesion(tanda: Path, url: str, broker: str, clave: str) -> Callable | None:
     """Devuelve con qué pedir páginas ya con sesión, o None si el portal la rechaza.
 
     Un rechazo queda como una captura fallida sin bytes: ni la contraseña ni la
@@ -95,14 +97,16 @@ def _iniciar_sesion(tanda: Path, url: str, broker: str, clave: str):
     return abridor.open
 
 
-def _pedir(tanda: Path, abrir, url: str, broker: str, tipo: str, pedido: str, nombre: str):
+def _pedir(
+    tanda: Path, abrir: Callable, url: str, broker: str, tipo: str, pedido: str, nombre: str
+) -> int | None:
     """Guarda una respuesta y devuelve la página siguiente, si la respuesta la anuncia."""
     try:
         with abrir(f"{url}{pedido}", timeout=10) as respuesta:
             codigo, cuerpo = respuesta.status, respuesta.read()
     except urllib.error.HTTPError as error:
         codigo, cuerpo = error.code, error.read()
-    except OSError as error:
+    except (OSError, http.client.HTTPException) as error:
         codigo, cuerpo = None, str(error).encode()
     bien = codigo == 200
     causa = None if bien else f"HTTP {codigo}: {cuerpo.decode('utf-8', 'replace')[:200]}"

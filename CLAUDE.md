@@ -24,4 +24,8 @@ POC local que une dos aseguradoras (Brújula y Aurora) en una base de datos comp
 - Todo texto del repo se escribe para quien no estuvo en la conversación: define cada término la primera vez, prefiere la frase simple y conserva el tecnicismo cuando es la palabra exacta. Antes de darlo por terminado, se relee quitando relleno y frases de agente. Porqué: quien lee el repo no tiene nuestro contexto, y lo que no se entiende solo no cuenta como evidencia.
 - Specs, ADRs y docs describen un problema de negocio; el contexto del encargo vive en `_local/`. Porqué: el porqué de cada spec debe atacar una causa del negocio.
 
-## Trampas: pendiente
+## Trampas
+- `sqlite3.Connection.executescript` cierra la transacción abierta antes de correr. Dentro de una carga, las sentencias van una por una (`bronze.ejecutar_esquema`); si no, un error deja la base a medias.
+- `python -I` ignora `PYTHONPATH`, y el paquete vive en `src/`. Para probar a mano: `PYTHONPATH=src python -m base_compartida ...`, sin `-I`.
+- SQLite no tiene decimal exacto. Los montos van en centavos enteros; nunca se suma un `REAL`.
+- `datetime.astimezone` sobre una fecha sin huso usa la zona de la máquina. `valores.a_instante_utc` la rechaza a propósito.

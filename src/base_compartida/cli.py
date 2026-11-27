@@ -14,21 +14,27 @@ from base_compartida.gold import PREGUNTAS
 from base_compartida.portal import portal
 
 BROKERS = ["alder", "birch"]
+SIN_VALOR = "—"
 
 
 def construir(fuentes: Path, datos: Path, config_dir: Path) -> None:
-    """Captura las dos fotos de cada aseguradora y el book, y carga todo en una base nueva."""
-    landing = datos / "landing"
-    shutil.rmtree(datos, ignore_errors=True)
+    """Captura las dos fotos de cada aseguradora y el book, y carga todo en una base nueva.
+
+    De la carpeta de datos borra solo lo que este comando genera: las capturas y la base.
+    """
+    landing, base = datos / "landing", datos / "base.sqlite"
+    shutil.rmtree(landing, ignore_errors=True)
+    base.unlink(missing_ok=True)
     clave = os.environ.get("BRUJULA_CLAVE", "demo")
     for escenario in ("baseline", "corrected"):
         with portal(fuentes, escenario) as url:
             captura.capturar_brujula(landing, url, BROKERS, clave)
         captura.capturar_aurora(landing, fuentes / "fixtures" / "aurora", escenario)
     captura.capturar_book(landing, fuentes / "reference" / "book.csv")
-    tandas = cargar(datos / "base.sqlite", landing, config_dir)
+    tandas = cargar(base, landing, config_dir)
+    print(f"Base construida en {base}.")
     print(
-        f"Base construida en {datos / 'base.sqlite'} con {len(tandas)} tandas: {', '.join(tandas)}"
+        f"Tandas cargadas (una tanda es una ronda de capturas de una fuente): {', '.join(tandas)}"
     )
 
 
@@ -39,17 +45,19 @@ def respuestas(base: Path) -> None:
         for vista, pregunta in PREGUNTAS.items():
             cursor = con.execute(f"SELECT * FROM {vista}")
             columnas = [c[0] for c in cursor.description]
-            filas = [["" if v is None else str(v) for v in fila] for fila in cursor]
+            filas = [[SIN_VALOR if v is None else str(v) for v in fila] for fila in cursor]
             print(f"\n## {pregunta}\n   (vista: {vista})\n")
-            _tabla(columnas, filas)
+            imprimir_tabla(columnas, filas)
     finally:
         con.close()
 
 
-def _tabla(columnas: list[str], filas: list[list[str]]) -> None:
-    anchos = [min(60, max(len(c), *(len(f[i]) for f in filas))) for i, c in enumerate(columnas)]
+def imprimir_tabla(columnas: list[str], filas: list[list[str]]) -> None:
+    """Imprime columnas alineadas. La última no se rellena ni se corta."""
+    anchos = [max([len(c), *(len(f[i]) for f in filas)]) for i, c in enumerate(columnas)]
     for fila in (columnas, ["-" * a for a in anchos], *filas):
-        print("  ".join(v[:60].ljust(a) for v, a in zip(fila, anchos, strict=True)).rstrip())
+        celdas = [v.ljust(a) for v, a in zip(fila[:-1], anchos[:-1], strict=True)]
+        print("  ".join([*celdas, fila[-1]]))
     if not filas:
         print("(sin filas)")
 
@@ -65,9 +73,10 @@ def main() -> None:
     if args.comando == "construir":
         construir(args.fuentes, args.datos, args.config)
     elif args.comando == "cargar":
-        print("Tandas agregadas:", cargar(base, landing, args.config) or "ninguna")
+        print("Tandas agregadas:", ", ".join(cargar(base, landing, args.config)) or "ninguna")
     elif args.comando == "rehacer":
-        print("Base rehecha desde las capturas:", rehacer(base, landing, args.config))
+        tandas = rehacer(base, landing, args.config)
+        print("Base rehecha desde las capturas:", ", ".join(tandas))
     else:
         respuestas(base)
 

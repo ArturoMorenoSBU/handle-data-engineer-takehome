@@ -14,7 +14,7 @@ Es una prueba de concepto (POC): muestra el enfoque con dos fuentes y pocos dato
 
 **Quién lo consume.** Quien consulta los datos reunidos de un broker, sea una persona o un programa, y quien integra una aseguradora nueva. Otro ingeniero debe poder construirlo y consultarlo siguiendo el README.
 
-**Las fuentes.** Todo es ficticio y viene en un lab: un paquete con el portal de Brújula, los archivos de Aurora, el book, el planteamiento del problema y las notas de cada fuente. Dónde vive el lab respecto al repo es una pregunta abierta (sección 7).
+**Las fuentes.** Todo es ficticio y viene en un lab: un paquete con el portal de Brújula, los archivos de Aurora, el book, el planteamiento del problema y las notas de cada fuente. En este repo vive en la carpeta `fuentes/`.
 
 | Fuente | Cómo llega | Moneda | Qué trae |
 |---|---|---|---|
@@ -31,7 +31,7 @@ El portal de Brújula se puede arrancar en cuatro escenarios:
 | `failure` | La página 2 de recibos del broker alder, y el detalle de sus recibos, responden error 503 |
 | `drift` | La página 2 de recibos de alder trae la lista bajo otro nombre de llave en el JSON |
 
-**Reglas de las fuentes.** Vienen en las notas del lab (`source-notes/`) y en la descripción del portal (`lab/SCENARIOS.md`). Este spec se escribió contra esas notas y contra el planteamiento del problema. Lo que no responden está escrito como supuesto en la sección 5. Las que este spec cita por nombre:
+**Reglas de las fuentes.** Vienen en las notas del lab (`fuentes/source-notes/`) y en la descripción del portal (`fuentes/lab/SCENARIOS.md`). Este spec se escribió contra esas notas y contra el planteamiento del problema. Lo que no responden está escrito como supuesto en la sección 5. Las que este spec cita por nombre:
 
 | Regla | Aseguradora | Qué dice | Estado que declara |
 |---|---|---|---|
@@ -255,14 +255,14 @@ Los criterios **CA** son obligatorios. Los **CD** son deseables: se hacen por or
 
 ## 7. Preguntas abiertas
 
-Las resuelven los ADRs o el plan, no este spec.
+Estaban abiertas al aprobar este spec. Ya tienen respuesta: los ADRs 0001 (capas), 0002 (reglas, y qué va en código, datos, configuración o memoria), 0003 (extracción) y 0004 (herramientas), y el plan. Se conservan como se plantearon.
 
 - **Capas:** cuántas, con qué nombres y qué guarda cada una. Incluye si las versiones se guardan o se recalculan desde las capturas, cómo se marca la vigente y dónde queda vacío un valor que no se pudo interpretar. ADR.
 - **Dónde viven las reglas de cada fuente:** en archivos, en la base o en los dos. ADR.
 - **Qué va en código, en datos, en configuración o en memoria,** y qué se entiende por memoria: la de la organización (notas, decisiones) o la de los agentes. ADR.
 - **Extracción de Brújula:** por las respuestas JSON, por las páginas HTML o por las dos. En este lab el JSON trae todos los campos de pólizas y recibos; el nombre de la cuenta solo sale en el HTML. ADR.
 - **Herramientas y almacenamiento.** ADR, después de los anteriores.
-- **El lab:** si entra al repo o se descarga aparte, y con qué nombre de carpeta. Hasta que se decida, las notas de las fuentes que cita este spec no están en el repo. Plan.
+- **El lab:** si entra al repo o se descarga aparte, y con qué nombre de carpeta. Resuelto en el plan: entra al repo como `fuentes/`.
 - **Reintentos:** cuántos y con qué espera. Plan.
 
 ## 8. Verificación ejecutable

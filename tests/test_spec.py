@@ -6,12 +6,11 @@ import shutil
 
 import pytest
 
+from apoyo import BASELINE, BROKERS, CONFIG, CORRECTED, FUENTES, consultar
 from base_compartida import captura, cli
 from base_compartida.bronze import HayQueRehacer
 from base_compartida.carga import cargar, rehacer, resultado
-from base_compartida.gold import PREGUNTAS, SOLO_EN_EL_BOOK
 from base_compartida.portal import portal
-from conftest import BASELINE, BROKERS, CONFIG, CORRECTED, FUENTES, consultar
 
 TOTALES = "SELECT aseguradora, broker, moneda, abierto_conocido, abiertos_sin_monto_utilizable,"
 TOTALES += " con_estado_indeterminado, monto_indeterminado FROM gold_abierto_conocido"
@@ -154,9 +153,10 @@ def test_09_el_orden_de_carga_no_cambia_el_resultado(landing, completa, base):
 
 
 def test_10_rehacer_desde_las_capturas_da_el_mismo_resultado(copia_de_landing, base):
-    cargar(base, copia_de_landing, CONFIG)
+    cargar(base, copia_de_landing, CONFIG, BASELINE)
+    cargar(base, copia_de_landing, CONFIG, CORRECTED)
     antes = resultado(base)
-    rehacer(base, copia_de_landing, CONFIG)
+    assert sorted(rehacer(base, copia_de_landing, CONFIG)) == sorted(BASELINE + CORRECTED)
     assert resultado(base) == antes
 
 
@@ -227,10 +227,13 @@ def test_14_solo_se_aplican_las_reglas_aceptadas(landing, completa, base, tmp_pa
 
 
 def test_15_comparacion_con_el_book(completa):
+    solo_en_el_book = "el book la afirma, la fuente no la muestra"
     sql = "SELECT situacion, COUNT(*) FROM gold_book GROUP BY situacion"
-    assert dict(consultar(completa, sql)) == {"en el book y en la fuente": 6, SOLO_EN_EL_BOOK: 2}
+    situaciones = dict(consultar(completa, sql))
+    assert situaciones == {"en el book y en la fuente": 6, solo_en_el_book: 2}
+    assert not [s for s in situaciones if "cancel" in s.lower()]
     sql = "SELECT aseguradora, broker, numero_poliza FROM gold_book WHERE situacion = ?"
-    assert consultar(completa, sql, SOLO_EN_EL_BOOK) == [
+    assert consultar(completa, sql, solo_en_el_book) == [
         ("aurora", "alder", "000999"),
         ("brujula", "alder", "P-300"),
     ]
@@ -242,8 +245,22 @@ def test_15_comparacion_con_el_book(completa):
 def test_16_el_comando_de_respuestas_trae_una_seccion_por_pregunta(completa, capsys):
     cli.respuestas(completa)
     salida = capsys.readouterr().out
-    for pregunta in PREGUNTAS.values():
-        assert pregunta in salida
+    vistas = (
+        "gold_abierto_conocido",
+        "gold_historial_recibos",
+        "gold_book",
+        "gold_reglas",
+        "gold_valores_no_validos",
+        "gold_diccionario",
+        "gold_completitud",
+    )
+    for vista in vistas:
+        assert f"(vista: {vista})" in salida
+    assert salida.count("\n## ¿") == 7
+    # El origen se imprime entero: la fila repetida de Aurora muestra sus dos líneas.
+    assert (
+        "receipts-baseline.csv posición 2; aurora-0001 receipts-baseline.csv posición 5" in salida
+    )
 
 
 @pytest.mark.parametrize(
@@ -266,7 +283,7 @@ def test_una_pagina_que_falla_o_cambia_de_forma_no_es_una_pagina_vacia(
     sql = "SELECT completa FROM gold_completitud WHERE broker = 'birch' AND tipo = 'recibos'"
     assert consultar(base, sql) == [("sí",)]
     # El total de alder sale más bajo, y al lado dice que la captura no está completa.
-    sql = "SELECT broker, abierto_conocido, capturas_completas FROM gold_abierto_conocido"
+    sql = "SELECT broker, abierto_conocido, ultima_captura_completa FROM gold_abierto_conocido"
     assert consultar(base, sql) == [("alder", "100.00", "no"), ("birch", "80.00", "sí")]
 
 

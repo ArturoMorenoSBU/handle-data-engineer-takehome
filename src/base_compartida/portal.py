@@ -22,8 +22,10 @@ def portal(fuentes: Path, escenario: str) -> Iterator[str]:
     """Entrega la dirección del portal mientras dura el bloque `with`."""
     puerto = _puerto_libre()
     servidor = fuentes / "lab" / "server.py"
+    if not servidor.exists():
+        raise FileNotFoundError(f"No está el portal de Brújula en {servidor}. Revisa --fuentes.")
     orden = [sys.executable, str(servidor), "--scenario", escenario, "--port", str(puerto)]
-    proceso = subprocess.Popen(orden, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    proceso = subprocess.Popen(orden, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
     try:
         _esperar(puerto, proceso)
         yield f"http://127.0.0.1:{puerto}"
@@ -36,7 +38,8 @@ def _esperar(puerto: int, proceso: subprocess.Popen, segundos: float = 10.0) -> 
     limite = time.monotonic() + segundos
     while time.monotonic() < limite:
         if proceso.poll() is not None:
-            raise RuntimeError("El portal de Brújula no arrancó. Necesita Python 3.11 o posterior.")
+            error = proceso.stderr.read().decode("utf-8", "replace")[-300:]
+            raise RuntimeError(f"El portal de Brújula no arrancó: {error}")
         with socket.socket() as s:
             if s.connect_ex(("127.0.0.1", puerto)) == 0:
                 return

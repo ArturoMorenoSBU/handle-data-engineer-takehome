@@ -44,7 +44,8 @@ Se gana:
 - Lo que cambia un resultado se ejecuta desde un solo lugar, las piezas aplicables, y nada propuesto llega a la carga (CA-27, CA-29).
 - De un total se llega a la nota que justifica cada exclusión: el valor apunta a su pieza, la pieza a su regla y la regla a su nota (CD-01, CA-26).
 - La base sigue siendo derivada entera: CA-04 se comprueba borrándola. Las reglas que muestra y los valores de silver salen de la misma carga, así que no se contradicen.
-- Una fuente nueva pide sus tablas de bronze, su descriptor y sus reglas. El código cambia solo si llega por un canal o con una forma que aún no sabe leer.
+- Una fuente nueva pide su descriptor, sus reglas y registrarla en el código con su lector: hoy hay uno por fuente. Las vistas y las consultas no cambian.
+- Ninguna pieza queda escrita sin cumplirse: si una pide algo que el código no sabe leer, como un encabezado que no está en la primera línea, la carga termina con error y dice cuál.
 
 Se pierde:
 - La carga termina con error si un dato obligatorio no tiene exactamente una pieza aplicable. Mientras tanto la base se queda como estaba, también para las demás fuentes.

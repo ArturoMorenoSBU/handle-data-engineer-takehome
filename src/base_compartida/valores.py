@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 
-from base_compartida.config import Configuracion
+from base_compartida.config import FORMATOS_DE_FECHA, Configuracion
 
 VALIDO = "valido"
 NO_SUMINISTRADO = "no_suministrado"
@@ -24,8 +24,6 @@ ESTADO_INDETERMINADO = "indeterminado"
 # Cómo llegó un campo dentro de su registro.
 CON_VALOR, VACIO, NULO, AUSENTE = "valor", "vacio", "nulo", "ausente"
 
-_FORMATOS_DE_FECHA = {"YYYY-MM-DD": "%Y-%m-%d", "DD/MM/YYYY": "%d/%m/%Y"}
-
 
 @dataclass(frozen=True)
 class Valor:
@@ -35,7 +33,9 @@ class Valor:
     piezas: tuple[str, ...] = ()
 
 
-def _sin_valor(config: Configuracion, fuente: str, texto: str | None, presencia: str):
+def _sin_valor(
+    config: Configuracion, fuente: str, texto: str | None, presencia: str
+) -> Valor | None:
     """Un campo que no vino, vino vacío o vino nulo. Devuelve None si sí trae valor."""
     if presencia == CON_VALOR:
         return None
@@ -47,7 +47,9 @@ def _sin_valor(config: Configuracion, fuente: str, texto: str | None, presencia:
     return Valor(None, None, disposicion, tuple(p.id for p in pieza))
 
 
-def interpretar_monto(config: Configuracion, fuente: str, texto: str | None, presencia: str):
+def interpretar_monto(
+    config: Configuracion, fuente: str, texto: str | None, presencia: str
+) -> Valor:
     """Devuelve el monto en centavos enteros, para que las sumas sean exactas."""
     if (faltante := _sin_valor(config, fuente, texto, presencia)) is not None:
         return faltante
@@ -63,26 +65,32 @@ def interpretar_monto(config: Configuracion, fuente: str, texto: str | None, pre
 
 
 def _a_centavos(texto: str, decimal: str, miles: str) -> int | None:
-    entero = rf"\d{{1,3}}(?:{re.escape(miles)}\d{{3}})*" if miles else r"\d+"
+    # El separador de miles es opcional: "1.500,00" y "1500,00" son el mismo monto.
+    con_miles = rf"\d{{1,3}}(?:{re.escape(miles)}\d{{3}})+|\d+"
+    entero = f"(?:{con_miles})" if miles else r"\d+"
     if not re.fullmatch(rf"{entero}(?:{re.escape(decimal)}\d{{1,2}})?", texto):
         return None
     limpio = texto.replace(miles, "") if miles else texto
     return int(Decimal(limpio.replace(decimal, ".")) * 100)
 
 
-def interpretar_fecha(config: Configuracion, fuente: str, texto: str | None, presencia: str):
+def interpretar_fecha(
+    config: Configuracion, fuente: str, texto: str | None, presencia: str
+) -> Valor:
     """Devuelve la fecha como año-mes-día. Una fecha que no existe queda inválida."""
     if (faltante := _sin_valor(config, fuente, texto, presencia)) is not None:
         return faltante
     pieza = config.formato(fuente, "vencimiento")
     try:
-        fecha: date = datetime.strptime(texto, _FORMATOS_DE_FECHA[pieza.valor]).date()
+        fecha: date = datetime.strptime(texto, FORMATOS_DE_FECHA[pieza.valor]).date()
     except (KeyError, ValueError):
         return Valor(texto, None, INVALIDO, (pieza.id,))
     return Valor(texto, fecha.isoformat(), VALIDO, (pieza.id,))
 
 
-def interpretar_estado(config: Configuracion, fuente: str, texto: str | None, presencia: str):
+def interpretar_estado(
+    config: Configuracion, fuente: str, texto: str | None, presencia: str
+) -> Valor:
     """Traduce la etiqueta de la fuente a abierto, pagado o indeterminado.
 
     Indeterminado es un valor, no una disposición: una etiqueta sin regla llega
@@ -97,7 +105,11 @@ def interpretar_estado(config: Configuracion, fuente: str, texto: str | None, pr
 
 
 def a_instante_utc(texto: str) -> str:
-    """Lee una fecha con huso horario y la devuelve en UTC, para comparar instantes."""
-    from datetime import UTC
+    """Lee una fecha con huso horario y la devuelve en UTC, para comparar instantes.
 
-    return datetime.fromisoformat(texto).astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    Una fecha sin huso no se acepta: leerla dependería de la zona de cada máquina.
+    """
+    instante = datetime.fromisoformat(texto)
+    if instante.tzinfo is None:
+        raise ValueError(f"la fecha {texto!r} no trae huso horario")
+    return instante.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")

@@ -7,6 +7,7 @@ falla, la base queda como estaba.
 
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 
@@ -46,9 +47,19 @@ def cargar(base: Path, landing: Path, config_dir: Path, tandas: list[str] | None
 
 
 def rehacer(base: Path, landing: Path, config_dir: Path) -> list:
-    """Borra todo lo derivado y lo rehace solo desde las capturas, sin tocar la fuente."""
-    base.unlink(missing_ok=True)
-    return cargar(base, landing, config_dir)
+    """Rehace todo lo derivado solo desde las capturas, sin tocar la fuente.
+
+    Arma la base nueva aparte y reemplaza la anterior solo si salió bien.
+    """
+    nueva = base.with_suffix(".nueva")
+    nueva.unlink(missing_ok=True)
+    try:
+        tandas = cargar(nueva, landing, config_dir)
+    except BaseException:
+        nueva.unlink(missing_ok=True)
+        raise
+    os.replace(nueva, base)
+    return tandas
 
 
 def resultado(base: Path) -> dict[str, list[tuple]]:

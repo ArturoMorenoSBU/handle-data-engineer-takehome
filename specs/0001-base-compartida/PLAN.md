@@ -3,7 +3,7 @@
 Cita: `SPEC.md` y los ADRs 0001 (capas), 0002 (reglas de cada fuente), 0003 (extracción de Brújula) y 0004 (herramientas).
 
 ## Enfoque
-Se construyen los 35 criterios obligatorios (CA-01 a CA-35). Los deseables (CD-01 a CD-09) quedan como siguiente incremento. La comprobación de cada rebanada es `make verificar`.
+Se construyen los 35 criterios obligatorios (CA-01 a CA-35). De los deseables salieron de paso dos: una respuesta que cambia de forma queda marcada con su causa (CD-07), y cada valor guarda qué piezas lo decidieron (parte de CD-01). El resto queda como siguiente incremento. La comprobación de cada rebanada es `make verificar`.
 
 ## Archivos a crear o cambiar
 - `fuentes/`: el paquete con el portal de Brújula, los archivos de Aurora, el book y las notas de cada fuente, sin modificar.
@@ -31,6 +31,8 @@ Se construyen los 35 criterios obligatorios (CA-01 a CA-35). Los deseables (CD-0
 - `make respuestas` muestra las siete respuestas preparadas. `make verificar` corre `ruff` y `pytest`.
 
 ## Rebanadas
+Una rebanada es un corte delgado que funciona de punta a punta. La primera, la bala trazadora, es la más delgada posible: prueba que todas las piezas se conectan.
+
 - [x] 1. Bala trazadora: un recibo de cada aseguradora, de la captura a una vista — comprobación: el total abierto de birch sale 80.00 USD y 800.00 BRL.
 - [x] 2. Captura completa con contexto y completitud — comprobación: alder 4 de 4 recibos; `failure` deja 2 de 4.
 - [x] 3. Reglas, valores y disposiciones — comprobación: `R-103` queda *no utilizable* por CONTRACT-17, con y sin AGENT-22.

@@ -30,6 +30,10 @@ def _dinero(centavos: str) -> str:
     return f"printf('%d.%02d', ({centavos}) / 100, ({centavos}) % 100)"
 
 
+def _cuenta(condicion: str) -> str:
+    return f"SUM(CASE WHEN {condicion} THEN 1 ELSE 0 END)"
+
+
 def _suma(condicion: str) -> str:
     return f"SUM(CASE WHEN {condicion} THEN v.monto_centavos ELSE 0 END)"
 
@@ -41,15 +45,16 @@ _VISTAS = {
     "gold_abierto_conocido": f"""
         SELECT r.aseguradora, r.broker, v.moneda,
             {_dinero(_suma(_ABIERTO))} AS abierto_conocido,
-            SUM(v.estado = 'abierto' AND v.monto_disposicion <> 'valido')
+            {_cuenta("v.estado = 'abierto' AND v.monto_disposicion <> 'valido'")}
                 AS abiertos_sin_monto_utilizable,
-            SUM(v.estado = 'indeterminado') AS con_estado_indeterminado,
+            {_cuenta("v.estado = 'indeterminado'")} AS con_estado_indeterminado,
             {_dinero(_suma(_INDETERMINADO))} AS monto_indeterminado,
-            CASE WHEN EXISTS (
-                SELECT 1 FROM silver_completitud k
-                WHERE k.fuente = r.aseguradora AND k.completa = 0
-                    AND (k.broker IS NULL OR k.broker = r.broker)
-            ) THEN 'no' ELSE 'sí' END AS capturas_completas,
+            CASE WHEN (
+                SELECT COALESCE(MIN(k.completa), 0) FROM silver_completitud k
+                WHERE k.fuente = r.aseguradora AND (k.broker IS NULL OR k.broker = r.broker)
+                    AND k.tanda_id = (SELECT MAX(u.tanda_id) FROM silver_completitud u
+                                      WHERE u.fuente = r.aseguradora)
+            ) = 1 THEN 'sí' ELSE 'no' END AS ultima_captura_completa,
             {_suma(_ABIERTO)} AS abierto_centavos
         FROM silver_recibos r
         JOIN silver_recibo_versiones v ON v.recibo_id = r.recibo_id AND v.vigente = 1
@@ -67,7 +72,9 @@ _VISTAS = {
         JOIN silver_apariciones a ON a.tipo = 'recibo' AND a.registro_id = v.recibo_id
             AND a.contenido_id = v.contenido_id
         JOIN bronze_capturas c ON c.captura_id = a.captura_id
-        GROUP BY v.recibo_id, v.revision, v.contenido_id
+        GROUP BY r.aseguradora, r.broker, r.numero_recibo, v.revision, v.contenido_id,
+            v.monto_texto, v.moneda, v.estado_texto, v.estado, v.vencimiento_texto,
+            v.observada_desde, v.observada_hasta, v.vigente
         ORDER BY r.aseguradora, r.broker, r.numero_recibo, v.revision, v.observada_desde""",
     "gold_book": f"""
         SELECT b.aseguradora, b.broker, b.numero_poliza,

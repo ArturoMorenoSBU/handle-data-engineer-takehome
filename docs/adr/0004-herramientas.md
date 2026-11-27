@@ -20,7 +20,7 @@ Módulos de la librería estándar: `urllib.request` y `http.cookiejar` para la 
 
 **Montos.** SQLite no tiene un tipo decimal exacto. Cada monto válido se guarda en centavos enteros, junto al texto original, y las sumas se hacen sobre los centavos.
 
-**SQL común.** Las tablas y las vistas usan SQL que casi cualquier motor entiende. Lo propio de SQLite son dos funciones de las vistas: la que da formato a los montos y la que junta varios orígenes en un texto. Pasar a PostgreSQL sería cambiar la conexión, esas dos funciones y usar su tipo `NUMERIC` para los montos.
+**SQL común.** Las tablas y las vistas usan SQL que casi cualquier motor entiende. Lo propio de SQLite son unas funciones de texto de las vistas: dar formato a los montos y juntar varios orígenes en un texto. Pasar a PostgreSQL sería cambiar la conexión, esas funciones y usar su tipo `NUMERIC` para los montos.
 
 ## Alternativas descartadas
 - **PostgreSQL.** Tiene decimal exacto y es un motor de producción habitual. Necesita un servidor: quien lo pruebe tendría que instalarlo o usar contenedores, y deja de ser "un comando".
@@ -28,7 +28,7 @@ Módulos de la librería estándar: `urllib.request` y `http.cookiejar` para la 
 - **Tablas Iceberg para lo compartido.** Su historial va por el momento en que se escribió la tabla. El spec pide historial por fecha de la fuente, y esas tablas se recalculan completas en cada carga, así que no aportaría nada que se pida. Sí tiene sentido con volumen real y almacenamiento en la nube.
 - **dbt para las transformaciones.** Útil cuando hay muchas tablas y un equipo. Aquí son pocas y agrega instalación y montaje.
 - **YAML para las reglas.** Es lo más común para descriptores, pero necesita una dependencia.
-- **`requests` y `pydantic`.** Más cómodos para HTTP y validación; la librería estándar alcanza para dos brokers y cinco tablas.
+- **`requests` y `pydantic`.** Más cómodos para HTTP y validación; la librería estándar alcanza para dos brokers y una docena de tablas.
 
 ## Consecuencias
 - Se corre con Python y nada más. Para verificar hace falta `uv`, que instala `ruff` y `pytest`.

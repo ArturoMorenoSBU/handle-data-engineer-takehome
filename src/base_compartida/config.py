@@ -17,8 +17,27 @@ FUENTES = (*ASEGURADORAS, "book")
 TIPOS = {"brujula": ("polizas", "recibos"), "aurora": ("polizas", "recibos"), "book": ("book",)}
 
 # Datos que la carga necesita sí o sí. Cada uno pide exactamente una pieza aplicable.
-_NOMBRES_COMUNES = ("poliza_del_recibo", "monto", "moneda", "vencimiento", "estado", "revision")
+NOMBRES_COMUNES_DEL_RECIBO = (
+    "poliza_del_recibo",
+    "monto",
+    "moneda",
+    "vencimiento",
+    "estado",
+    "revision",
+)
 _FORMATOS = ("monto_decimal", "monto_miles", "vencimiento", "revision", "fecha_foto")
+FORMATOS_DE_FECHA = {"YYYY-MM-DD": "%Y-%m-%d", "DD/MM/YYYY": "%d/%m/%Y"}
+
+# Valores que el código sabe ejecutar. Una pieza que pide otro detiene la carga:
+# así ninguna pieza queda escrita sin que algo la cumpla.
+_VALORES_ADMITIDOS = {
+    "clase": {"csv", "json"},
+    "encabezado": {"primera_linea"},
+    "ausente_y_nulo": {"distintos"},
+    "formato:revision": {"entero"},
+    "formato:fecha_foto": {"iso8601"},
+    "formato:vencimiento": set(FORMATOS_DE_FECHA),
+}
 
 
 class ErrorDeConfiguracion(Exception):
@@ -99,7 +118,10 @@ class Configuracion:
         return {texto: p for (campo, texto), p in piezas.items() if campo == sobre}
 
     def _sin_repetidos(self, fuente: str, dato: str, llave) -> dict:
-        """Si dos piezas aplicables cubren lo mismo, no se aplica ninguna y queda anotado."""
+        """Si dos piezas aplicables cubren lo mismo, no se aplica ninguna.
+
+        El choque queda en `conflictos`; `revisar_conflictos` los junta todos.
+        """
         vistas: dict = {}
         repetidas = set()
         for pieza in self.aplicables(fuente, dato):
@@ -119,7 +141,19 @@ class Configuracion:
         """Termina con error, antes de escribir nada, si falta o sobra una pieza obligatoria."""
         for fuente in FUENTES:
             for dato, tipo in _obligatorios(fuente, self.clase(fuente)):
-                self.una(fuente, dato, tipo)
+                pieza = self.una(fuente, dato, tipo)
+                admitidos = _VALORES_ADMITIDOS.get(dato)
+                if admitidos and pieza.valor not in admitidos:
+                    raise ErrorDeConfiguracion(
+                        f"{pieza.id}: el código no sabe leer '{dato}' como '{pieza.valor}'"
+                    )
+
+    def revisar_conflictos(self) -> list[str]:
+        """Piezas aplicables que cubren la misma etiqueta o el mismo texto especial."""
+        for fuente in ASEGURADORAS:
+            self.mapa_de_estados(fuente)
+            self._sin_repetidos(fuente, "texto_especial", lambda p: (p.sobre, p.texto))
+        return self.conflictos
 
     def firma_de_lectura(self, fuente: str) -> str:
         """Lo que bronze usa para leer una fuente. Si cambia, hay que rehacer la base."""
@@ -141,7 +175,7 @@ def _obligatorios(fuente: str, clase: str) -> list[tuple[str, str]]:
     datos += [("campo:broker", "polizas"), ("campo:broker", "recibos")]
     datos += [("campo:numero_poliza", "polizas"), ("campo:numero_recibo", "recibos")]
     datos += [("fecha_foto", ""), ("completitud", "")]
-    datos += [(f"campo:{n}", "recibos") for n in _NOMBRES_COMUNES]
+    datos += [(f"campo:{n}", "recibos") for n in NOMBRES_COMUNES_DEL_RECIBO]
     return datos + [(f"formato:{n}", "") for n in _FORMATOS]
 
 

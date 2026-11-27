@@ -12,7 +12,7 @@ pieza = [
   { id = "BRU-E-NUM-REC", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "campo:numero_recibo", tipo = "recibos", campo = "receipt_number" },
   { id = "BRU-E-FOTO", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "fecha_foto", campo = "source_as_of" },
   { id = "BRU-E-FILAS", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "completitud", campo = "total_rows" },
-  { id = "BRU-E-SOBRE", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "sobre:broker", campo = "broker" },
+  { id = "BRU-E-SOBRE", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "respuesta:broker", campo = "broker" },
   { id = "BRU-E-NULO", regla = "BRU-PORTAL", apartado = "estructura", dato = "ausente_y_nulo", valor = "distintos" },
 
   { id = "BRU-F-DEC", regla = "BRU-OBSERVADO", apartado = "formato", dato = "formato:monto_decimal", valor = "." },

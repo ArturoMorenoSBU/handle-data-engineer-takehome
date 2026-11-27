@@ -4,6 +4,9 @@ Una fila por aparición: un registro tal como vino en una captura y en una
 posición dentro de ella. Los nombres de columna son los de la fuente y todo
 valor es texto. Bronze separa registros y campos con la estructura que la
 fuente declara; no interpreta montos, fechas ni estados.
+
+Una captura que no se puede leer no detiene la carga: queda anotada como
+"forma no reconocida", con su causa, y no da filas.
 """
 
 from __future__ import annotations
@@ -13,10 +16,12 @@ import fnmatch
 import io
 import json
 import sqlite3
+from collections.abc import Callable
 from pathlib import Path
 
 from base_compartida.captura import leer_tanda
-from base_compartida.config import Configuracion
+from base_compartida.config import Configuracion, ErrorDeConfiguracion
+from base_compartida.valores import a_instante_utc
 
 LEIDA, FALLO, FORMA_NO_RECONOCIDA = "leida", "fallo", "forma_no_reconocida"
 
@@ -28,7 +33,7 @@ CREATE TABLE IF NOT EXISTS bronze_capturas (
     broker TEXT,
     tipo TEXT,
     pedido TEXT,
-    version TEXT,
+    entrega TEXT,
     archivo TEXT,
     capturado_en TEXT,
     resultado TEXT NOT NULL,
@@ -49,9 +54,16 @@ _MANIFEST_CONTRA_PIEZAS = {
     "thousands_separator": "formato:monto_miles",
 }
 
+# Lo que puede salir mal al leer los bytes de una captura. No detiene la carga.
+_NO_SE_PUDO_LEER = (ValueError, TypeError, KeyError, AttributeError, sqlite3.Error)
+
 
 class HayQueRehacer(Exception):
     """Cambió la forma de leer una fuente que ya tiene filas en bronze."""
+
+
+class FormaNoReconocida(Exception):
+    """La captura llegó bien, pero no tiene la forma que su descriptor describe."""
 
 
 def tabla_de(fuente: str, tipo: str) -> str:
@@ -84,9 +96,11 @@ def agregar_tandas(
         pendientes = [c for c in pendientes if c.name in tandas]
     for carpeta in pendientes:
         fuente = carpeta.name.rsplit("-", 1)[0]
+        clase, leer = _LECTORES[fuente]
+        if config.clase(fuente) != clase:
+            raise ErrorDeConfiguracion(f"{fuente}: el código solo sabe leerla como {clase}")
         _comprobar_lectura(con, config, fuente)
-        capturas = leer_tanda(carpeta)
-        {"brujula": _brujula, "aurora": _aurora, "book": _book}[fuente](con, config, capturas)
+        leer(con, config, leer_tanda(carpeta))
     return [c.name for c in pendientes]
 
 
@@ -101,7 +115,8 @@ def _comprobar_lectura(con: sqlite3.Connection, config: Configuracion, fuente: s
     con.execute("INSERT OR REPLACE INTO bronze_lectura VALUES (?, ?)", (fuente, firma))
 
 
-def _anotar(con: sqlite3.Connection, contexto: dict, resultado: str, **extra) -> None:
+def _anotar(con: sqlite3.Connection, contexto: dict, resultado: str, **declarado) -> None:
+    """Escribe la fila de una captura: su contexto, cómo salió y lo que la fuente declara."""
     fila = {
         "captura_id": contexto["captura_id"],
         "tanda_id": contexto["tanda_id"],
@@ -109,7 +124,7 @@ def _anotar(con: sqlite3.Connection, contexto: dict, resultado: str, **extra) ->
         "broker": contexto.get("broker"),
         "tipo": contexto.get("tipo"),
         "pedido": contexto.get("pedido"),
-        "version": contexto.get("version"),
+        "entrega": contexto.get("version"),
         "archivo": contexto["archivo"],
         "capturado_en": contexto["capturado_en"],
         "resultado": resultado,
@@ -117,14 +132,30 @@ def _anotar(con: sqlite3.Connection, contexto: dict, resultado: str, **extra) ->
         "fecha_fuente": None,
         "filas_declaradas": None,
         "archivos_declarados": None,
-        **extra,
+        **declarado,
     }
     columnas = ", ".join(fila)
     marcas = ", ".join(f":{c}" for c in fila)
     con.execute(f"INSERT INTO bronze_capturas ({columnas}) VALUES ({marcas})", fila)
 
 
-def _insertar(con: sqlite3.Connection, tabla: str, captura_id: str, posicion: int, registro: dict):
+def _leer_captura(
+    con: sqlite3.Connection, contexto: dict, leer: Callable[[], None], **declarado
+) -> None:
+    """Lee una captura completa o no deja nada de ella, salvo su fila con la causa."""
+    con.execute("SAVEPOINT captura")
+    try:
+        leer()
+    except (FormaNoReconocida, *_NO_SE_PUDO_LEER) as error:
+        con.execute("ROLLBACK TO captura")
+        causa = str(error) or type(error).__name__
+        _anotar(con, {**contexto, "causa": causa}, FORMA_NO_RECONOCIDA, **declarado)
+    con.execute("RELEASE captura")
+
+
+def _insertar(
+    con: sqlite3.Connection, tabla: str, captura_id: str, posicion: int, registro: dict
+) -> None:
     """Guarda una aparición. `_campos` lista los campos que sí vinieron en el registro:
     así se distingue un campo que no vino (no está en la lista) de uno nulo (NULL)."""
     con.execute(
@@ -134,7 +165,7 @@ def _insertar(con: sqlite3.Connection, tabla: str, captura_id: str, posicion: in
     presentes = {fila[1] for fila in con.execute(f"PRAGMA table_info({tabla})")}
     for campo in registro:
         if '"' in campo:
-            raise ValueError(f"Nombre de campo no admitido: {campo!r}")
+            raise FormaNoReconocida(f"nombre de campo no admitido: {campo!r}")
         if campo not in presentes:
             con.execute(f'ALTER TABLE {tabla} ADD COLUMN "{campo}" TEXT')
     columnas = "".join(f', "{c}"' for c in registro)
@@ -154,71 +185,84 @@ def _como_texto(valor: object) -> str | None:
 def _brujula(con: sqlite3.Connection, config: Configuracion, capturas: list) -> None:
     campo_foto = config.una("brujula", "fecha_foto").campo
     campo_filas = config.una("brujula", "completitud").campo
-    sobre = config.aplicables("brujula", "sobre:broker")
+    del_sobre = config.aplicables("brujula", "respuesta:broker")
     for contexto, cuerpo in capturas:
         if contexto["resultado"] != "ok":
             _anotar(con, contexto, FALLO)
             continue
-        llave = config.una("brujula", "registros", contexto["tipo"]).valor
         try:
             respuesta = json.loads(cuerpo)
         except ValueError:
             respuesta = None
-        declarado = respuesta if isinstance(respuesta, dict) else {}
-        extra = {
-            "fecha_fuente": declarado.get(campo_foto),
-            "filas_declaradas": declarado.get(campo_filas),
+        sobre = respuesta if isinstance(respuesta, dict) else {}
+        filas = sobre.get(campo_filas)
+        declarado = {
+            "fecha_fuente": _como_texto(sobre.get(campo_foto)),
+            "filas_declaradas": filas if isinstance(filas, int) else None,
         }
-        registros = declarado.get(llave)
-        causa = None
-        if not isinstance(registros, list):
-            causa = f"la respuesta no trae sus registros en la llave '{llave}'"
-        elif sobre and declarado.get(sobre[0].campo) != contexto["broker"]:
-            causa = "el broker que declara la respuesta no es el de la sesión"
-        if causa:
-            _anotar(con, {**contexto, "causa": causa}, FORMA_NO_RECONOCIDA, **extra)
-            continue
-        _anotar(con, contexto, LEIDA, **extra)
-        tabla = tabla_de("brujula", contexto["tipo"])
-        for posicion, registro in enumerate(registros, start=1):
-            textos = {campo: _como_texto(valor) for campo, valor in registro.items()}
-            _insertar(con, tabla, contexto["captura_id"], posicion, textos)
+
+        def leer(contexto=contexto, sobre=sobre, declarado=declarado) -> None:
+            llave = config.una("brujula", "registros", contexto["tipo"]).valor
+            registros = sobre.get(llave)
+            if not isinstance(registros, list):
+                raise FormaNoReconocida(f"la respuesta no trae sus registros en la llave '{llave}'")
+            if del_sobre and sobre.get(del_sobre[0].campo) != contexto["broker"]:
+                raise FormaNoReconocida("el broker que declara la respuesta no es el de la sesión")
+            a_instante_utc(declarado["fecha_fuente"])  # La foto necesita una fecha legible.
+            _anotar(con, contexto, LEIDA, **declarado)
+            tabla = tabla_de("brujula", contexto["tipo"])
+            for posicion, registro in enumerate(registros, start=1):
+                textos = {campo: _como_texto(valor) for campo, valor in registro.items()}
+                _insertar(con, tabla, contexto["captura_id"], posicion, textos)
+
+        _leer_captura(con, contexto, leer, **declarado)
 
 
-def _diferencias_con_manifest(config: Configuracion, manifest: object) -> list[str]:
-    if not isinstance(manifest, dict):
-        return ["el manifest no se puede leer"]
+def _del_manifest(config: Configuracion, dato: str, entrega: dict) -> object:
+    """Lee de la entrega la llave que nombra una pieza escrita como `manifest:<llave>`."""
+    return entrega[config.una("aurora", dato).valor.removeprefix("manifest:")]
+
+
+def _entrega_de_aurora(config: Configuracion, cuerpo: bytes, nombre: str) -> dict:
+    """Lo que el manifest declara de una entrega. Solo vale si coincide con el descriptor."""
+    try:
+        manifest = json.loads(cuerpo)
+        entrega = manifest["versions"][nombre]
+        fecha = _del_manifest(config, "fecha_foto", entrega)
+        a_instante_utc(fecha)
+        archivos = list(_del_manifest(config, "completitud", entrega))
+    except _NO_SE_PUDO_LEER as error:
+        raise FormaNoReconocida(f"el manifest no se puede leer: {error}") from error
     diferencias = []
     for llave, dato in _MANIFEST_CONTRA_PIEZAS.items():
         esperado = config.una("aurora", dato).valor
         if manifest.get(llave) != esperado:
-            diferencias.append(f"{llave}: manifest={manifest.get(llave)!r}, pieza={esperado!r}")
-    return diferencias
+            diferencias.append(
+                f"{llave}: manifest={manifest.get(llave)!r}, descriptor={esperado!r}"
+            )
+    if diferencias:
+        raise FormaNoReconocida(
+            "el manifest no coincide con el descriptor: " + "; ".join(diferencias)
+        )
+    return {"fecha_fuente": fecha, "archivos_declarados": json.dumps(archivos)}
 
 
 def _aurora(con: sqlite3.Connection, config: Configuracion, capturas: list) -> None:
-    cuerpo_manifest = next((c for ctx, c in capturas if ctx["tipo"] == "manifest"), b"")
+    """Una tanda de Aurora se lee solo si su manifest coincide con el descriptor."""
+    manifest = next((c for ctx, c in capturas if ctx["tipo"] == "manifest"), b"")
     try:
-        manifest = json.loads(cuerpo_manifest)
-    except ValueError:
-        manifest = None
-    diferencias = _diferencias_con_manifest(config, manifest)
+        declarado = _entrega_de_aurora(config, manifest, capturas[0][0].get("version"))
+    except FormaNoReconocida as error:
+        for contexto, _ in capturas:
+            _anotar(con, {**contexto, "causa": str(error)}, FORMA_NO_RECONOCIDA)
+        return
     for contexto, cuerpo in capturas:
-        if diferencias:
-            causa = "el manifest no coincide con el descriptor: " + "; ".join(diferencias)
-            _anotar(con, {**contexto, "causa": causa}, FORMA_NO_RECONOCIDA)
-            continue
-        version = manifest["versions"][contexto["version"]]
-        extra = {
-            "fecha_fuente": version["source_as_of"],
-            "archivos_declarados": json.dumps(version["files"]),
-        }
         if contexto["resultado"] != "ok":
-            _anotar(con, contexto, FALLO, **extra)
+            _anotar(con, contexto, FALLO, **declarado)
         elif contexto["tipo"] == "manifest":
-            _anotar(con, contexto, LEIDA, **extra)
+            _anotar(con, contexto, LEIDA, **declarado)
         else:
-            _csv(con, config, "aurora", contexto, cuerpo, extra)
+            _csv(con, config, "aurora", contexto, cuerpo, declarado)
 
 
 def _book(con: sqlite3.Connection, config: Configuracion, capturas: list) -> None:
@@ -226,21 +270,50 @@ def _book(con: sqlite3.Connection, config: Configuracion, capturas: list) -> Non
         _csv(con, config, "book", contexto, cuerpo, {})
 
 
-def _csv(con, config: Configuracion, fuente: str, contexto: dict, cuerpo: bytes, extra: dict):
+def _tipo_de_archivo(config: Configuracion, fuente: str, nombre: str) -> str:
+    for pieza in config.aplicables(fuente, "registros"):
+        if fnmatch.fnmatch(nombre, pieza.valor):
+            return pieza.tipo
+    raise FormaNoReconocida("ninguna pieza dice qué registros trae este archivo")
+
+
+def _csv(
+    con: sqlite3.Connection,
+    config: Configuracion,
+    fuente: str,
+    contexto: dict,
+    cuerpo: bytes,
+    declarado: dict,
+) -> None:
     """Lee un archivo CSV con la codificación y el separador de las piezas de estructura."""
-    tipos = {p.tipo: p.valor for p in config.aplicables(fuente, "registros")}
-    nombre = "book.csv" if fuente == "book" else contexto["pedido"]
-    tipo = next((t for t, patron in tipos.items() if fnmatch.fnmatch(nombre, patron)), None)
-    if tipo is None:
-        causa = "ninguna pieza dice qué registros trae este archivo"
-        _anotar(con, {**contexto, "causa": causa}, FORMA_NO_RECONOCIDA, **extra)
-        return
-    texto = cuerpo.decode(config.una(fuente, "codificacion").valor)
-    lector = csv.reader(io.StringIO(texto), delimiter=config.una(fuente, "separador").valor)
-    encabezado = next(lector, [])
-    _anotar(con, {**contexto, "tipo": tipo}, LEIDA, **extra)
-    # La línea 1 es el encabezado: el primer registro está en la línea 2.
-    for linea, valores in enumerate(lector, start=2):
-        if valores:
-            registro = dict(zip(encabezado, valores, strict=False))
+
+    def leer() -> None:
+        nombre = "book.csv" if fuente == "book" else contexto["pedido"]
+        tipo = _tipo_de_archivo(config, fuente, nombre)
+        codificacion = config.una(fuente, "codificacion").valor
+        # `utf-8-sig` es UTF-8 que además quita la marca inicial que agregan algunos programas.
+        texto = cuerpo.decode("utf-8-sig" if codificacion.upper() == "UTF-8" else codificacion)
+        lector = csv.reader(io.StringIO(texto), delimiter=config.una(fuente, "separador").valor)
+        encabezado = next(lector, [])
+        citados = {p.campo for p in config.aplicables(fuente, tipo=tipo) if p.campo}
+        if faltan := sorted(citados - set(encabezado)):
+            raise FormaNoReconocida(f"al encabezado le faltan campos: {', '.join(faltan)}")
+        _anotar(con, {**contexto, "tipo": tipo}, LEIDA, **declarado)
+        # La línea 1 es el encabezado: el primer registro está en la línea 2.
+        for linea, valores in enumerate(lector, start=2):
+            if not valores:
+                continue
+            if len(valores) != len(encabezado):
+                raise FormaNoReconocida(f"la línea {linea} no tiene los campos del encabezado")
+            registro = dict(zip(encabezado, valores, strict=True))
             _insertar(con, tabla_de(fuente, tipo), contexto["captura_id"], linea, registro)
+
+    _leer_captura(con, contexto, leer, **declarado)
+
+
+# La clase que el código sabe leer de cada fuente, y con qué función.
+_LECTORES: dict[str, tuple[str, Callable]] = {
+    "brujula": ("json", _brujula),
+    "aurora": ("csv", _aurora),
+    "book": ("csv", _book),
+}

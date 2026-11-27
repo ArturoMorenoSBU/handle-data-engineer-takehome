@@ -15,7 +15,7 @@ from dataclasses import asdict, dataclass
 
 from base_compartida import valores
 from base_compartida.bronze import LEIDA, ejecutar_esquema, existe, tabla_de
-from base_compartida.config import ASEGURADORAS, Configuracion
+from base_compartida.config import ASEGURADORAS, NOMBRES_COMUNES_DEL_RECIBO, Configuracion
 
 _ESQUEMA = """
 CREATE TABLE silver_reglas (
@@ -110,19 +110,25 @@ def recalcular(con: sqlite3.Connection, config: Configuracion) -> None:
     _completitud(con, config)
 
 
+def _guardar(con: sqlite3.Connection, tabla: str, fila: dict) -> None:
+    """Inserta una fila nombrando cada columna, para no depender de su orden."""
+    columnas = ", ".join(fila)
+    marcas = ", ".join(f":{c}" for c in fila)
+    con.execute(f"INSERT INTO {tabla} ({columnas}) VALUES ({marcas})", fila)
+
+
 def _copiar_reglas(con: sqlite3.Connection, config: Configuracion) -> None:
+    """Deja en silver la lista y los descriptores con que se calculó esta carga."""
     for regla in config.reglas:
-        con.execute(
-            "INSERT INTO silver_reglas VALUES (?,?,?,?,?,?,?,?,?)", tuple(asdict(regla).values())
-        )
+        _guardar(con, "silver_reglas", asdict(regla))
     for pieza in config.piezas:
-        fila = (pieza.id, pieza.regla, pieza.fuente, pieza.apartado, pieza.dato, pieza.tipo)
-        fila += (pieza.campo, pieza.valor, pieza.etiqueta, pieza.sobre, pieza.texto)
-        fila += (pieza.disposicion, int(config.es_aplicable(pieza)))
-        con.execute("INSERT INTO silver_piezas VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", fila)
+        aplicable = int(config.es_aplicable(pieza))
+        _guardar(con, "silver_piezas", {**asdict(pieza), "aplicable": aplicable})
 
 
-def _apariciones(con: sqlite3.Connection, config: Configuracion, fuente: str, tipo: str):
+def _apariciones(
+    con: sqlite3.Connection, config: Configuracion, fuente: str, tipo: str
+) -> dict[tuple[str, str], list[Aparicion]]:
     """Lee de bronze todas las apariciones de un tipo de registro, agrupadas por identidad."""
     tabla = tabla_de(fuente, tipo)
     grupos: dict[tuple[str, str], list[Aparicion]] = defaultdict(list)
@@ -131,15 +137,16 @@ def _apariciones(con: sqlite3.Connection, config: Configuracion, fuente: str, ti
     pieza_broker = config.campo(fuente, "broker", tipo)
     nombre = "numero_poliza" if tipo == "polizas" else "numero_recibo"
     campo_numero = config.campo(fuente, nombre, tipo).campo
+    cursor = con.cursor()
+    cursor.row_factory = sqlite3.Row
     consulta = (
         f"SELECT r.*, c.broker AS _sesion, c.fecha_fuente AS _foto FROM {tabla} r"
-        " JOIN bronze_capturas c USING (captura_id)"
+        " JOIN bronze_capturas c ON c.captura_id = r.captura_id"
     )
-    con.row_factory = sqlite3.Row
-    for fila in con.execute(consulta):
+    for fila in cursor.execute(consulta):
         datos = dict(fila)
-        sesion = pieza_broker.valor == "@sesion"
-        broker = datos["_sesion"] if sesion else datos.get(pieza_broker.campo)
+        de_la_sesion = pieza_broker.valor == "@sesion"
+        broker = datos["_sesion"] if de_la_sesion else datos[pieza_broker.campo]
         aparicion = Aparicion(
             captura_id=datos["captura_id"],
             posicion=datos["posicion"],
@@ -150,14 +157,17 @@ def _apariciones(con: sqlite3.Connection, config: Configuracion, fuente: str, ti
             campos=json.loads(datos["_campos"]),
         )
         grupos[(broker, aparicion.numero)].append(aparicion)
-    con.row_factory = None
     return grupos
 
 
-def _anotar_apariciones(con, tipo: str, registro_id: str, apariciones: list[Aparicion]) -> None:
+def _anotar_apariciones(
+    con: sqlite3.Connection, tipo: str, registro_id: str, apariciones: list[Aparicion]
+) -> None:
     for a in apariciones:
-        fila = (tipo, registro_id, a.contenido_id, a.captura_id, a.posicion)
-        con.execute("INSERT INTO silver_apariciones VALUES (?,?,?,?,?)", fila)
+        fila = {"tipo": tipo, "registro_id": registro_id, "contenido_id": a.contenido_id}
+        _guardar(
+            con, "silver_apariciones", {**fila, "captura_id": a.captura_id, "posicion": a.posicion}
+        )
 
 
 def _polizas(con: sqlite3.Connection, config: Configuracion, fuente: str) -> None:
@@ -165,33 +175,56 @@ def _polizas(con: sqlite3.Connection, config: Configuracion, fuente: str) -> Non
     respecto de la foto anterior donde apareció. La vigente es la última observada."""
     for (broker, numero), apariciones in _apariciones(con, config, fuente, "polizas").items():
         poliza_id = f"{fuente}|{broker}|{numero}"
-        con.execute(
-            "INSERT INTO silver_polizas VALUES (?,?,?,?)", (poliza_id, fuente, broker, numero)
-        )
+        poliza = {"poliza_id": poliza_id, "aseguradora": fuente, "broker": broker}
+        _guardar(con, "silver_polizas", {**poliza, "numero_poliza": numero})
         _anotar_apariciones(con, "poliza", poliza_id, apariciones)
-        versiones: list[Aparicion] = []
+        primeras: list[Aparicion] = []
         for aparicion in sorted(apariciones, key=lambda a: a.orden):
-            if not versiones or versiones[-1].contenido_id != aparicion.contenido_id:
-                versiones.append(aparicion)
-        for i, primera in enumerate(versiones):
-            ultima = i == len(versiones) - 1
-            hasta = None if ultima else versiones[i + 1].foto
-            fila = (poliza_id, i + 1, primera.contenido_id, primera.foto, hasta, int(ultima))
-            fila += (primera.captura_id, primera.posicion)
-            con.execute("INSERT INTO silver_poliza_versiones VALUES (?,?,?,?,?,?,?,?)", fila)
+            if not primeras or primeras[-1].contenido_id != aparicion.contenido_id:
+                primeras.append(aparicion)
+        for i, primera in enumerate(primeras):
+            es_la_ultima = i == len(primeras) - 1
+            version = {
+                "poliza_id": poliza_id,
+                "version": i + 1,
+                "contenido_id": primera.contenido_id,
+                "observada_desde": primera.foto,
+                "observada_hasta": None if es_la_ultima else primeras[i + 1].foto,
+                "vigente": int(es_la_ultima),
+                "ref_captura_id": primera.captura_id,
+                "ref_posicion": primera.posicion,
+            }
+            _guardar(con, "silver_poliza_versiones", version)
 
 
 def _revision(texto: str | None) -> int:
+    """La revisión como número, para ordenar. Una que no es un entero se ordena como 0."""
     return int(texto) if texto and texto.isdigit() else 0
+
+
+def _valores_del_recibo(
+    config: Configuracion, fuente: str, campo: dict, referencia: Aparicion
+) -> dict:
+    """Texto, valor interpretado, disposición y piezas del monto, el vencimiento y el estado."""
+    interpretados = {
+        "monto": (valores.interpretar_monto, "monto_centavos"),
+        "vencimiento": (valores.interpretar_fecha, "vencimiento"),
+        "estado": (valores.interpretar_estado, "estado"),
+    }
+    columnas = {}
+    for nombre, (interpretar, columna) in interpretados.items():
+        valor = interpretar(config, fuente, *referencia.texto_y_presencia(campo[nombre]))
+        columnas[f"{nombre}_texto"] = valor.texto
+        columnas[columna] = valor.interpretado
+        columnas[f"{nombre}_disposicion"] = valor.disposicion
+        columnas[f"{nombre}_piezas"] = ",".join(valor.piezas)
+    return columnas
 
 
 def _recibos(con: sqlite3.Connection, config: Configuracion, fuente: str) -> None:
     """Una versión de un recibo es una revisión con un contenido. Se ordenan por lo
     que declara la fuente (la revisión), no por el orden en que se cargó."""
-    campo = {
-        nombre: config.campo(fuente, nombre, "recibos").campo
-        for nombre in ("poliza_del_recibo", "monto", "moneda", "vencimiento", "estado", "revision")
-    }
+    campo = {n: config.campo(fuente, n, "recibos").campo for n in NOMBRES_COMUNES_DEL_RECIBO}
     for (broker, numero), apariciones in _apariciones(con, config, fuente, "recibos").items():
         recibo_id = f"{fuente}|{broker}|{numero}"
         _anotar_apariciones(con, "recibo", recibo_id, apariciones)
@@ -201,38 +234,35 @@ def _recibos(con: sqlite3.Connection, config: Configuracion, fuente: str) -> Non
             por_version[(revision, aparicion.contenido_id)].append(aparicion)
         desde = {v: min(a.foto for a in grupo) for v, grupo in por_version.items()}
         ordenadas = sorted(por_version, key=lambda v: (v[0], desde[v], v[1]))
-        for i, version in enumerate(ordenadas):
-            referencia = min(por_version[version], key=lambda a: a.orden)
-            posteriores = [desde[v] for v in ordenadas[i + 1 :]]
+        for i, (revision, contenido_id) in enumerate(ordenadas):
+            llave = (revision, contenido_id)
+            referencia = min(por_version[llave], key=lambda a: a.orden)
+            # Una revisión menor puede llegar en una foto posterior: entonces no hay
+            # una foto en que se la haya visto reemplazada, y el final queda vacío.
+            despues = [desde[v] for v in ordenadas[i + 1 :] if desde[v] > desde[llave]]
             vigente = i == len(ordenadas) - 1
             poliza_id = f"{fuente}|{broker}|{referencia.datos.get(campo['poliza_del_recibo'])}"
-            interpretados = (
-                valores.interpretar_monto(
-                    config, fuente, *referencia.texto_y_presencia(campo["monto"])
-                ),
-                valores.interpretar_fecha(
-                    config, fuente, *referencia.texto_y_presencia(campo["vencimiento"])
-                ),
-                valores.interpretar_estado(
-                    config, fuente, *referencia.texto_y_presencia(campo["estado"])
-                ),
-            )
-            fila = [
-                recibo_id,
-                version[0],
-                version[1],
-                poliza_id,
-                referencia.datos.get(campo["moneda"]),
-            ]
-            for valor in interpretados:
-                fila += [valor.texto, valor.interpretado, valor.disposicion, ",".join(valor.piezas)]
-            fila += [desde[version], min(posteriores) if posteriores else None, int(vigente)]
-            fila += [referencia.captura_id, referencia.posicion]
-            marcas = ",".join("?" * len(fila))
-            con.execute(f"INSERT INTO silver_recibo_versiones VALUES ({marcas})", fila)
+            version = {
+                "recibo_id": recibo_id,
+                "revision": revision,
+                "contenido_id": contenido_id,
+                "poliza_id": poliza_id,
+                "moneda": referencia.datos.get(campo["moneda"]),
+                **_valores_del_recibo(config, fuente, campo, referencia),
+                "observada_desde": desde[llave],
+                "observada_hasta": min(despues) if despues else None,
+                "vigente": int(vigente),
+                "ref_captura_id": referencia.captura_id,
+                "ref_posicion": referencia.posicion,
+            }
+            _guardar(con, "silver_recibo_versiones", version)
             if vigente:
-                recibo = (recibo_id, fuente, broker, numero, poliza_id)
-                con.execute("INSERT INTO silver_recibos VALUES (?,?,?,?,?)", recibo)
+                recibo = {"recibo_id": recibo_id, "aseguradora": fuente, "broker": broker}
+                _guardar(
+                    con,
+                    "silver_recibos",
+                    {**recibo, "numero_recibo": numero, "poliza_id": poliza_id},
+                )
 
 
 def _book(con: sqlite3.Connection, config: Configuracion) -> None:
@@ -247,50 +277,65 @@ def _book(con: sqlite3.Connection, config: Configuracion) -> None:
     if ultima is None:
         return
     nombres = ("aseguradora", "broker", "numero_poliza", "referencia_cliente")
-    columnas = ", ".join(f'r."{config.campo("book", n, "book").campo}"' for n in nombres)
+    origen = ", ".join(f'r."{config.campo("book", n, "book").campo}"' for n in nombres)
     con.execute(
-        f"INSERT INTO silver_book SELECT {columnas}, r.captura_id, r.posicion FROM bronze_book r"
-        " JOIN bronze_capturas c USING (captura_id) WHERE c.tanda_id = ?",
+        f"INSERT INTO silver_book ({', '.join(nombres)}, captura_id, posicion)"
+        f" SELECT {origen}, r.captura_id, r.posicion FROM bronze_book r"
+        " JOIN bronze_capturas c ON c.captura_id = r.captura_id WHERE c.tanda_id = ?",
         ultima,
     )
+
+
+def _registros_distintos(
+    con: sqlite3.Connection, config: Configuracion, tanda: str, broker: str, tipo: str
+) -> int:
+    """Cuántos registros distintos de un broker dejó una tanda de Brújula. No cuenta apariciones."""
+    tabla = tabla_de("brujula", tipo)
+    if tipo not in ("polizas", "recibos") or not existe(con, tabla):
+        return 0
+    nombre = "numero_poliza" if tipo == "polizas" else "numero_recibo"
+    numero = config.campo("brujula", nombre, tipo).campo
+    consulta = (
+        f'SELECT COUNT(DISTINCT r."{numero}") FROM {tabla} r'
+        " JOIN bronze_capturas c ON c.captura_id = r.captura_id"
+        " WHERE c.tanda_id = ? AND c.broker = ?"
+    )
+    return con.execute(consulta, (tanda, broker)).fetchone()[0]
 
 
 def _completitud(con: sqlite3.Connection, config: Configuracion) -> None:
     """Dice, por tanda, si se capturó todo lo que la fuente declaró ofrecer.
 
-    Brújula declara filas por broker; se cuentan registros distintos, no
-    apariciones. Aurora declara archivos en su manifest; no declara filas.
+    Brújula declara filas por broker. Aurora declara archivos en su manifest; no
+    declara filas. El book no declara nada: está completo si su archivo se leyó.
     """
+    no_leidas = "SUM(CASE WHEN resultado <> 'leida' THEN 1 ELSE 0 END)"
     consulta = (
-        "SELECT tanda_id, broker, tipo, MAX(filas_declaradas),"
-        " SUM(resultado <> 'leida'), group_concat(captura_id)"
+        f"SELECT tanda_id, broker, tipo, MAX(filas_declaradas), {no_leidas}"
         " FROM bronze_capturas WHERE fuente = 'brujula' GROUP BY tanda_id, broker, tipo"
     )
-    for tanda, broker, tipo, declarado, no_leidas, capturas in con.execute(consulta).fetchall():
-        tabla = tabla_de("brujula", tipo)
-        capturado = 0
-        if tipo in ("polizas", "recibos") and existe(con, tabla):
-            nombre = "numero_poliza" if tipo == "polizas" else "numero_recibo"
-            numero = config.campo("brujula", nombre, tipo).campo
-            marcas = ",".join("?" * len(capturas.split(",")))
-            contar = (
-                f'SELECT COUNT(DISTINCT "{numero}") FROM {tabla} WHERE captura_id IN ({marcas})'
-            )
-            capturado = con.execute(contar, capturas.split(",")).fetchone()[0]
-        completa = declarado is not None and capturado == declarado and not no_leidas
-        fila = (tanda, "brujula", broker, tipo, "filas", declarado, capturado, no_leidas)
-        con.execute(
-            "INSERT INTO silver_completitud VALUES (?,?,?,?,?,?,?,?,?)", (*fila, int(completa))
+    for tanda, broker, tipo, declarado, fallidas in con.execute(consulta).fetchall():
+        capturado = _registros_distintos(con, config, tanda, broker, tipo)
+        completa = declarado is not None and capturado == declarado and not fallidas
+        fila = {"tanda_id": tanda, "fuente": "brujula", "broker": broker, "tipo": tipo}
+        fila |= {"unidad": "filas", "declarado": declarado, "capturado": capturado}
+        _guardar(
+            con,
+            "silver_completitud",
+            {**fila, "capturas_no_leidas": fallidas, "completa": int(completa)},
         )
+    leidos = "SUM(CASE WHEN resultado = 'leida' AND tipo <> 'manifest' THEN 1 ELSE 0 END)"
     consulta = (
-        "SELECT tanda_id, fuente, MAX(archivos_declarados),"
-        " SUM(resultado = 'leida' AND tipo <> 'manifest'), SUM(resultado <> 'leida')"
+        f"SELECT tanda_id, fuente, MAX(archivos_declarados), {leidos}, {no_leidas}"
         " FROM bronze_capturas WHERE fuente <> 'brujula' GROUP BY tanda_id, fuente"
     )
-    for tanda, fuente, declarados, leidos, no_leidas in con.execute(consulta).fetchall():
+    for tanda, fuente, declarados, capturado, fallidas in con.execute(consulta).fetchall():
         declarado = len(json.loads(declarados)) if declarados else None
-        completa = not no_leidas and (declarado is None or declarado == leidos)
-        fila = (tanda, fuente, None, "archivos", "archivos", declarado, leidos, no_leidas)
-        con.execute(
-            "INSERT INTO silver_completitud VALUES (?,?,?,?,?,?,?,?,?)", (*fila, int(completa))
+        completa = not fallidas and declarado in (None, capturado)
+        fila = {"tanda_id": tanda, "fuente": fuente, "broker": None, "tipo": "archivos"}
+        fila |= {"unidad": "archivos", "declarado": declarado, "capturado": capturado}
+        _guardar(
+            con,
+            "silver_completitud",
+            {**fila, "capturas_no_leidas": fallidas, "completa": int(completa)},
         )

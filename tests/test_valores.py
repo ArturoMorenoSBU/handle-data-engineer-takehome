@@ -6,9 +6,9 @@ import shutil
 
 import pytest
 
+from apoyo import CONFIG
 from base_compartida import valores
 from base_compartida.config import ErrorDeConfiguracion, leer_configuracion
-from conftest import CONFIG
 
 
 @pytest.fixture(scope="module")
@@ -43,6 +43,8 @@ def test_tbd_solo_es_texto_especial_en_la_fuente_que_tiene_esa_regla(config):
         ("aurora", "2.400,50", 240050),
         ("aurora", "150,00", 15000),
         ("aurora", "1.500", 150000),
+        ("aurora", "1500,00", 150000),
+        ("aurora", "15.00,00", None),
         ("aurora", "1500.00", None),
         ("brujula", "100.00", 10000),
         ("brujula", "1,500.00", None),
@@ -55,6 +57,9 @@ def test_cada_fuente_se_lee_con_su_propio_formato_de_monto(config, fuente, texto
 def test_los_instantes_se_comparan_en_utc():
     assert valores.a_instante_utc("2026-11-02T12:00:00-03:00") == "2026-11-02T15:00:00Z"
     assert valores.a_instante_utc("2026-11-02T12:00:00Z") == "2026-11-02T12:00:00Z"
+    # Sin huso, el resultado dependería de la zona de la máquina: no se acepta.
+    with pytest.raises(ValueError, match="huso"):
+        valores.a_instante_utc("2026-11-02T12:00:00")
 
 
 def test_sin_una_pieza_obligatoria_la_configuracion_no_se_acepta(tmp_path):
