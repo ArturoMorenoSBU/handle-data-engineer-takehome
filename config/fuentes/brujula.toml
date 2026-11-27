@@ -1,0 +1,38 @@
+# Descriptor de Brújula: piezas que la carga ejecuta. Cada pieza cita una regla.
+# apartado: estructura (la usa bronze), formato y significado (los usa silver).
+fuente = "brujula"
+
+pieza = [
+  { id = "BRU-E-CLASE", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "clase", valor = "json" },
+  { id = "BRU-E-REG-POL", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "registros", tipo = "polizas", valor = "policies" },
+  { id = "BRU-E-REG-REC", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "registros", tipo = "recibos", valor = "receipts" },
+  { id = "BRU-E-BROKER-POL", regla = "BRU-PORTAL", apartado = "estructura", dato = "campo:broker", tipo = "polizas", valor = "@sesion" },
+  { id = "BRU-E-BROKER-REC", regla = "BRU-PORTAL", apartado = "estructura", dato = "campo:broker", tipo = "recibos", valor = "@sesion" },
+  { id = "BRU-E-NUM-POL", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "campo:numero_poliza", tipo = "polizas", campo = "policy_number" },
+  { id = "BRU-E-NUM-REC", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "campo:numero_recibo", tipo = "recibos", campo = "receipt_number" },
+  { id = "BRU-E-FOTO", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "fecha_foto", campo = "source_as_of" },
+  { id = "BRU-E-FILAS", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "completitud", campo = "total_rows" },
+  { id = "BRU-E-SOBRE", regla = "BRU-OBSERVADO", apartado = "estructura", dato = "sobre:broker", campo = "broker" },
+  { id = "BRU-E-NULO", regla = "BRU-PORTAL", apartado = "estructura", dato = "ausente_y_nulo", valor = "distintos" },
+
+  { id = "BRU-F-DEC", regla = "BRU-OBSERVADO", apartado = "formato", dato = "formato:monto_decimal", valor = "." },
+  { id = "BRU-F-MIL", regla = "BRU-OBSERVADO", apartado = "formato", dato = "formato:monto_miles", valor = "" },
+  { id = "BRU-F-VENC", regla = "BRU-EJEMPLOS", apartado = "formato", dato = "formato:vencimiento", valor = "YYYY-MM-DD" },
+  { id = "BRU-F-REV", regla = "BRU-OBSERVADO", apartado = "formato", dato = "formato:revision", valor = "entero" },
+  { id = "BRU-F-FOTO", regla = "BRU-OBSERVADO", apartado = "formato", dato = "formato:fecha_foto", valor = "iso8601" },
+
+  { id = "BRU-S-POLIZA", regla = "BRU-OBSERVADO", apartado = "significado", dato = "campo:poliza_del_recibo", tipo = "recibos", campo = "policy_number" },
+  { id = "BRU-S-MONTO", regla = "BRU-OBSERVADO", apartado = "significado", dato = "campo:monto", tipo = "recibos", campo = "amount" },
+  { id = "BRU-S-MONEDA", regla = "BRU-OBSERVADO", apartado = "significado", dato = "campo:moneda", tipo = "recibos", campo = "currency" },
+  { id = "BRU-S-VENC", regla = "BRU-OBSERVADO", apartado = "significado", dato = "campo:vencimiento", tipo = "recibos", campo = "due_date" },
+  { id = "BRU-S-ESTADO", regla = "BRU-OBSERVADO", apartado = "significado", dato = "campo:estado", tipo = "recibos", campo = "status" },
+  { id = "BRU-S-REV", regla = "BRU-OBSERVADO", apartado = "significado", dato = "campo:revision", tipo = "recibos", campo = "revision" },
+  { id = "BRU-S-REF", regla = "BRU-OBSERVADO", apartado = "significado", dato = "propio:referencia_cliente", tipo = "polizas", campo = "customer_reference" },
+
+  { id = "BRU-S-PAID", regla = "BRU-PORTAL", apartado = "significado", dato = "estado", etiqueta = "paid", valor = "pagado" },
+  { id = "BRU-S-OUTSTANDING", regla = "BRU-ESTADOS", apartado = "significado", dato = "estado", etiqueta = "outstanding", valor = "abierto" },
+
+  # Dos piezas sobre el mismo texto. Solo corre la de la regla aceptada.
+  { id = "BRU-S-TBD", regla = "CONTRACT-17", apartado = "significado", dato = "texto_especial", sobre = "monto", texto = "TBD", disposicion = "no_utilizable" },
+  { id = "BRU-S-TBD-CERO", regla = "AGENT-22", apartado = "significado", dato = "texto_especial", sobre = "monto", texto = "TBD", disposicion = "valido", valor = "0" },
+]

@@ -1,0 +1,36 @@
+# Descriptor de Aurora. Separador, codificación y formatos se comparan con el
+# manifest de cada entrega: la tanda solo se lee si coinciden.
+fuente = "aurora"
+
+pieza = [
+  { id = "AUR-E-CLASE", regla = "AUR-01", apartado = "estructura", dato = "clase", valor = "csv" },
+  { id = "AUR-E-COD", regla = "AUR-01", apartado = "estructura", dato = "codificacion", valor = "UTF-8" },
+  { id = "AUR-E-SEP", regla = "AUR-01", apartado = "estructura", dato = "separador", valor = ";" },
+  { id = "AUR-E-ENC", regla = "AUR-OBSERVADO", apartado = "estructura", dato = "encabezado", valor = "primera_linea" },
+  { id = "AUR-E-REG-POL", regla = "AUR-OBSERVADO", apartado = "estructura", dato = "registros", tipo = "polizas", valor = "policies.csv" },
+  { id = "AUR-E-REG-REC", regla = "AUR-OBSERVADO", apartado = "estructura", dato = "registros", tipo = "recibos", valor = "receipts-*.csv" },
+  { id = "AUR-E-BROKER-POL", regla = "AUR-01", apartado = "estructura", dato = "campo:broker", tipo = "polizas", campo = "corretora" },
+  { id = "AUR-E-BROKER-REC", regla = "AUR-OBSERVADO", apartado = "estructura", dato = "campo:broker", tipo = "recibos", campo = "corretora" },
+  { id = "AUR-E-NUM-POL", regla = "AUR-01", apartado = "estructura", dato = "campo:numero_poliza", tipo = "polizas", campo = "numero_apolice" },
+  { id = "AUR-E-NUM-REC", regla = "AUR-01", apartado = "estructura", dato = "campo:numero_recibo", tipo = "recibos", campo = "id_cobranca" },
+  { id = "AUR-E-FOTO", regla = "AUR-OBSERVADO", apartado = "estructura", dato = "fecha_foto", valor = "manifest:source_as_of" },
+  { id = "AUR-E-ARCHIVOS", regla = "AUR-OBSERVADO", apartado = "estructura", dato = "completitud", valor = "manifest:files" },
+
+  { id = "AUR-F-DEC", regla = "AUR-01", apartado = "formato", dato = "formato:monto_decimal", valor = "," },
+  { id = "AUR-F-MIL", regla = "AUR-01", apartado = "formato", dato = "formato:monto_miles", valor = "." },
+  { id = "AUR-F-VENC", regla = "AUR-01", apartado = "formato", dato = "formato:vencimiento", valor = "DD/MM/YYYY" },
+  { id = "AUR-F-REV", regla = "AUR-OBSERVADO", apartado = "formato", dato = "formato:revision", valor = "entero" },
+  { id = "AUR-F-FOTO", regla = "AUR-OBSERVADO", apartado = "formato", dato = "formato:fecha_foto", valor = "iso8601" },
+
+  { id = "AUR-S-POLIZA", regla = "AUR-OBSERVADO", apartado = "significado", dato = "campo:poliza_del_recibo", tipo = "recibos", campo = "numero_apolice" },
+  { id = "AUR-S-MONTO", regla = "AUR-01", apartado = "significado", dato = "campo:monto", tipo = "recibos", campo = "valor_parcela" },
+  { id = "AUR-S-MONEDA", regla = "AUR-01", apartado = "significado", dato = "campo:moneda", tipo = "recibos", campo = "moeda" },
+  { id = "AUR-S-VENC", regla = "AUR-01", apartado = "significado", dato = "campo:vencimiento", tipo = "recibos", campo = "vencimento" },
+  { id = "AUR-S-ESTADO", regla = "AUR-01", apartado = "significado", dato = "campo:estado", tipo = "recibos", campo = "status_cobranca" },
+  { id = "AUR-S-REV", regla = "AUR-01", apartado = "significado", dato = "campo:revision", tipo = "recibos", campo = "revisao" },
+  { id = "AUR-S-REF", regla = "AUR-01", apartado = "significado", dato = "propio:referencia_cliente", tipo = "polizas", campo = "segurado_ref" },
+
+  { id = "AUR-S-ABERTO", regla = "AUR-01", apartado = "significado", dato = "estado", etiqueta = "EM_ABERTO", valor = "abierto" },
+  { id = "AUR-S-LIQUIDADO", regla = "AUR-01", apartado = "significado", dato = "estado", etiqueta = "LIQUIDADO", valor = "pagado" },
+  { id = "AUR-S-CONCILIACAO", regla = "AUR-01", apartado = "significado", dato = "estado", etiqueta = "EM_CONCILIACAO", valor = "indeterminado" },
+]

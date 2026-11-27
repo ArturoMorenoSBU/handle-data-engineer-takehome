@@ -1,0 +1,14 @@
+# Descriptor del book: el inventario de pólizas que cada broker dice tener.
+fuente = "book"
+
+pieza = [
+  { id = "BOOK-E-CLASE", regla = "BOOK-01", apartado = "estructura", dato = "clase", valor = "csv" },
+  { id = "BOOK-E-COD", regla = "BOOK-01", apartado = "estructura", dato = "codificacion", valor = "UTF-8" },
+  { id = "BOOK-E-SEP", regla = "BOOK-01", apartado = "estructura", dato = "separador", valor = "," },
+  { id = "BOOK-E-ENC", regla = "BOOK-01", apartado = "estructura", dato = "encabezado", valor = "primera_linea" },
+  { id = "BOOK-E-REG", regla = "BOOK-01", apartado = "estructura", dato = "registros", tipo = "book", valor = "book.csv" },
+  { id = "BOOK-E-ASEG", regla = "BOOK-01", apartado = "estructura", dato = "campo:aseguradora", tipo = "book", campo = "carrier" },
+  { id = "BOOK-E-BROKER", regla = "BOOK-01", apartado = "estructura", dato = "campo:broker", tipo = "book", campo = "broker" },
+  { id = "BOOK-E-NUM", regla = "BOOK-01", apartado = "estructura", dato = "campo:numero_poliza", tipo = "book", campo = "policy_number" },
+  { id = "BOOK-S-REF", regla = "BOOK-01", apartado = "significado", dato = "campo:referencia_cliente", tipo = "book", campo = "customer_reference" },
+]

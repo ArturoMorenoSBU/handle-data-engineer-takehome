@@ -24,3 +24,7 @@ coverage/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Datos generados: capturas y base. Se rehacen con `make construir`
+datos/
+.ruff_cache/

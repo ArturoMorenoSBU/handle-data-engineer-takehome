@@ -1,0 +1,27 @@
+[project]
+name = "base-compartida"
+version = "0.1.0"
+description = "Base de datos compartida para dos aseguradoras, sin perder lo que dijo cada fuente"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["fuentes", "_local", "datos"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "B", "UP", "SIM"]
+# N818 pide el sufijo "Error" en inglés; los nombres de este código están en español.
+ignore = ["N818"]
