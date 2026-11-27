@@ -1,0 +1,115 @@
+
+## ¿Cuánto está abierto y qué quedó fuera de la suma?
+   (vista: gold_abierto_conocido)
+
+aseguradora  broker  moneda  abierto_conocido  abiertos_sin_monto_utilizable  con_estado_indeterminado  monto_indeterminado  capturas_completas  abierto_centavos
+-----------  ------  ------  ----------------  -----------------------------  ------------------------  -------------------  ------------------  ----------------
+aurora       alder   BRL     0.00              0                              1                         2400.50              sí                  0
+aurora       birch   BRL     800.00            0                              0                         0.00                 sí                  80000
+brujula      alder   USD     130.00            1                              0                         0.00                 sí                  13000
+brujula      birch   USD     80.00             0                              0                         0.00                 sí                  8000
+
+## ¿Cuál es el historial de cada recibo?
+   (vista: gold_historial_recibos)
+
+aseguradora  broker  numero_recibo  revision  monto     moneda  estado_fuente   estado         vencimiento  observada_desde       observada_hasta       vigente  apariciones  origen
+-----------  ------  -------------  --------  --------  ------  --------------  -------------  -----------  --------------------  --------------------  -------  -----------  ------------------------------------------------------------
+aurora       alder   R-100          1         1.500,00  BRL     EM_ABERTO       abierto        10/11/2026   2026-11-02T15:00:00Z  2026-11-03T15:00:00Z  0        2            aurora-0001 receipts-baseline.csv posición 2; aurora-0001 re
+aurora       alder   R-100          2         1.500,00  BRL     LIQUIDADO       pagado         10/11/2026   2026-11-03T15:00:00Z                        1        1            aurora-0002 receipts-corrected.csv posición 2
+aurora       alder   R-101          1         150,00    BRL     LIQUIDADO       pagado         10/10/2026   2026-11-02T15:00:00Z                        1        2            aurora-0001 receipts-baseline.csv posición 3; aurora-0002 re
+aurora       alder   R-102          1         2.400,50  BRL     EM_CONCILIACAO  indeterminado  31/11/2026   2026-11-02T15:00:00Z                        1        2            aurora-0001 receipts-baseline.csv posición 4; aurora-0002 re
+aurora       birch   R-100          1         800,00    BRL     EM_ABERTO       abierto        30/11/2026   2026-11-02T15:00:00Z                        1        2            aurora-0001 receipts-baseline.csv posición 6; aurora-0002 re
+brujula      alder   R-100          1         100.00    USD     outstanding     abierto        2026-10-30   2026-11-02T12:00:00Z                        1        2            brujula-0001 /api/receipts?page=1 posición 1; brujula-0002 /
+brujula      alder   R-101          1         50.00     USD     paid            pagado                      2026-11-02T12:00:00Z                        1        2            brujula-0001 /api/receipts?page=1 posición 2; brujula-0002 /
+brujula      alder   R-102          1         25.00     USD     outstanding     abierto                     2026-11-02T12:00:00Z  2026-11-03T12:00:00Z  0        1            brujula-0001 /api/receipts?page=2 posición 1
+brujula      alder   R-102          2         30.00     USD     outstanding     abierto                     2026-11-03T12:00:00Z                        1        1            brujula-0002 /api/receipts?page=2 posición 1
+brujula      alder   R-103          1         TBD       USD     outstanding     abierto        2026-11-08   2026-11-02T12:00:00Z                        1        2            brujula-0001 /api/receipts?page=2 posición 2; brujula-0002 /
+brujula      birch   R-100          1         80.00     USD     outstanding     abierto        2026-11-01   2026-11-02T12:00:00Z                        1        2            brujula-0001 /api/receipts?page=1 posición 1; brujula-0002 /
+
+## ¿Qué pólizas están en el book, en la fuente o en los dos?
+   (vista: gold_book)
+
+aseguradora  broker  numero_poliza  situacion                                   referencia_en_el_book  referencia_en_la_fuente
+-----------  ------  -------------  ------------------------------------------  ---------------------  -----------------------
+aurora       alder   000123         en el book y en la fuente                   AL-04                  CLI-002
+aurora       alder   000999         el book la afirma, la fuente no la muestra  AL-05
+aurora       alder   P-100          en el book y en la fuente                   AL-01                  CLI-001
+aurora       birch   P-100          en el book y en la fuente                   BI-01                  CLI-010
+brujula      alder   P-100          en el book y en la fuente                   AL-01                  AL-01
+brujula      alder   P-200          en el book y en la fuente                   AL-02                  AL-02
+brujula      alder   P-300          el book la afirma, la fuente no la muestra  AL-03
+brujula      birch   P-100          en el book y en la fuente                   BI-01                  BI-01
+
+## ¿Qué reglas tiene cada fuente y en qué estado?
+   (vista: gold_reglas)
+
+regla          fuente   estado     origen                      fecha       propuesta_por                    decidida_por                     nota                                            piezas  piezas_que_se_aplican  dice
+-------------  -------  ---------  --------------------------  ----------  -------------------------------  -------------------------------  ----------------------------------------------  ------  ---------------------  ------------------------------------------------------------
+AUR-01         aurora   aceptada   documentación de la fuente  2026-11-02  carrier integration engineering  carrier integration engineering  fuentes/source-notes/aurora-contract.md         18      18                     Formato de los archivos y significado de cada columna y de c
+AUR-OBSERVADO  aurora   aceptada   observación propia          2026-11-27  quien integra la fuente          quien integra la fuente          docs/adr/0002-reglas-de-cada-fuente.md          9       9                      Lo que la guía no dice: encabezado, qué archivo trae qué, y
+BOOK-01        book     aceptada   observación propia          2026-11-27  quien integra la fuente          quien integra la fuente          docs/adr/0002-reglas-de-cada-fuente.md          9       9                      Forma del archivo del book y sus campos de identidad.
+AGENT-22       brujula  propuesta  observación propia          2026-11-03  source-onboarding assistant                                       fuentes/source-notes/mapping-proposal.md        1       0                      Propone leer TBD como cero. Contradice a CONTRACT-17 y no es
+BRU-AYUDA      brujula  aceptada   documentación de la fuente  2026-11-02  Brújula support                  quien integra la fuente          fuentes/source-notes/carrier-help.md            0       0                      Los números se repiten entre brokers y la revisión es del re
+BRU-EJEMPLOS   brujula  aceptada   documentación de la fuente  2026-11-27  descripción de los ejemplos      quien integra la fuente          fuentes/fixtures/README.md                      1       1                      Brújula entrega JSON con fechas ISO.
+BRU-ESTADOS    brujula  aceptada   decisión de este POC        2026-11-26  quien integra la fuente          quien integra la fuente          specs/0001-base-compartida/SPEC.md              1       1                      outstanding se trata como abierto, igual que EM_ABERTO de Au
+BRU-OBSERVADO  brujula  aceptada   observación propia          2026-11-27  quien integra la fuente          quien integra la fuente          docs/adr/0003-captura-del-portal-de-brujula.md  19      19                     Forma de las respuestas JSON: llaves, punto decimal, revisió
+BRU-PORTAL     brujula  aceptada   documentación de la fuente  2026-11-27  descripción del portal           quien integra la fuente          fuentes/lab/SCENARIOS.md                        4       4                      El broker lo define la sesión. Un campo que no vino y uno nu
+CONTRACT-17    brujula  aceptada   contrato                    2026-11-02  carrier integration engineering  carrier integration engineering  fuentes/source-notes/accepted-contract.md       1       1                      El monto entra a una suma solo si es un valor monetario váli
+
+## ¿Qué valores tienen una disposición distinta de válido?
+   (vista: gold_valores_no_validos)
+
+aseguradora  broker  numero_recibo  revision  campo        texto       disposicion      piezas      reglas
+-----------  ------  -------------  --------  -----------  ----------  ---------------  ----------  -----------
+aurora       alder   R-102          1         vencimiento  31/11/2026  invalido         AUR-F-VENC  AUR-01
+brujula      alder   R-101          1         vencimiento              nulo_explicito   BRU-E-NULO  BRU-PORTAL
+brujula      alder   R-102          1         vencimiento              no_suministrado  BRU-E-NULO  BRU-PORTAL
+brujula      alder   R-102          2         vencimiento              no_suministrado  BRU-E-NULO  BRU-PORTAL
+brujula      alder   R-103          1         monto        TBD         no_utilizable    BRU-S-TBD   CONTRACT-17
+
+## ¿De qué campo de cada fuente sale cada nombre común?
+   (vista: gold_diccionario)
+
+nombre_comun        fuente   tipo_de_registro  campo_de_la_fuente                regla          pieza
+------------------  -------  ----------------  --------------------------------  -------------  ----------------
+aseguradora         book     book              carrier                           BOOK-01        BOOK-E-ASEG
+broker              aurora   polizas           corretora                         AUR-01         AUR-E-BROKER-POL
+broker              aurora   recibos           corretora                         AUR-OBSERVADO  AUR-E-BROKER-REC
+broker              book     book              broker                            BOOK-01        BOOK-E-BROKER
+broker              brujula  polizas           la sesión con la que se consultó  BRU-PORTAL     BRU-E-BROKER-POL
+broker              brujula  recibos           la sesión con la que se consultó  BRU-PORTAL     BRU-E-BROKER-REC
+estado              aurora   recibos           status_cobranca                   AUR-01         AUR-S-ESTADO
+estado              brujula  recibos           status                            BRU-OBSERVADO  BRU-S-ESTADO
+moneda              aurora   recibos           moeda                             AUR-01         AUR-S-MONEDA
+moneda              brujula  recibos           currency                          BRU-OBSERVADO  BRU-S-MONEDA
+monto               aurora   recibos           valor_parcela                     AUR-01         AUR-S-MONTO
+monto               brujula  recibos           amount                            BRU-OBSERVADO  BRU-S-MONTO
+numero_poliza       aurora   polizas           numero_apolice                    AUR-01         AUR-E-NUM-POL
+numero_poliza       book     book              policy_number                     BOOK-01        BOOK-E-NUM
+numero_poliza       brujula  polizas           policy_number                     BRU-OBSERVADO  BRU-E-NUM-POL
+numero_recibo       aurora   recibos           id_cobranca                       AUR-01         AUR-E-NUM-REC
+numero_recibo       brujula  recibos           receipt_number                    BRU-OBSERVADO  BRU-E-NUM-REC
+poliza_del_recibo   aurora   recibos           numero_apolice                    AUR-OBSERVADO  AUR-S-POLIZA
+poliza_del_recibo   brujula  recibos           policy_number                     BRU-OBSERVADO  BRU-S-POLIZA
+referencia_cliente  book     book              customer_reference                BOOK-01        BOOK-S-REF
+revision            aurora   recibos           revisao                           AUR-01         AUR-S-REV
+revision            brujula  recibos           revision                          BRU-OBSERVADO  BRU-S-REV
+vencimiento         aurora   recibos           vencimento                        AUR-01         AUR-S-VENC
+vencimiento         brujula  recibos           due_date                          BRU-OBSERVADO  BRU-S-VENC
+
+## ¿Quedó completa cada captura?
+   (vista: gold_completitud)
+
+tanda_id      fuente   broker  tipo      declarado  capturado  unidad    capturas_no_leidas  completa
+------------  -------  ------  --------  ---------  ---------  --------  ------------------  --------
+aurora-0001   aurora           archivos  2          2          archivos  0                   sí
+aurora-0002   aurora           archivos  2          2          archivos  0                   sí
+book-0001     book             archivos             1          archivos  0                   sí
+brujula-0001  brujula  alder   polizas   2          2          filas     0                   sí
+brujula-0001  brujula  alder   recibos   4          4          filas     0                   sí
+brujula-0001  brujula  birch   polizas   1          1          filas     0                   sí
+brujula-0001  brujula  birch   recibos   1          1          filas     0                   sí
+brujula-0002  brujula  alder   polizas   2          2          filas     0                   sí
+brujula-0002  brujula  alder   recibos   4          4          filas     0                   sí
+brujula-0002  brujula  birch   polizas   1          1          filas     0                   sí
+brujula-0002  brujula  birch   recibos   1          1          filas     0                   sí

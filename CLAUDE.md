@@ -14,7 +14,10 @@ POC local que une dos aseguradoras (Brújula y Aurora) en una base de datos comp
 - Una decisión con alternativas (como el stack) va en un ADR en `docs/adr/`; el plan la cita.
 - `.claude/` crece cuando hace falta, no antes: skill cuando una tarea se repite, subagente cuando hay un rol claro o una tarea ensucia la sesión, hook cuando una regla de aquí se ignora o es un "nunca".
 
-## Comandos: pendiente
+## Comandos
+- `make construir`: captura las dos aseguradoras y el book, y arma la base en `datos/`.
+- `make respuestas`: muestra las respuestas preparadas.
+- `make verificar`: `ruff` y `pytest`. Es la comprobación de cada rebanada.
 
 ## Reglas
 - Al repo solo sube lo que explica el resultado: specs, ADRs, código, pruebas y evidencia. Análisis, investigación, brainstorms y borradores van en `_local/`, que git ignora (`.git/info/exclude`). Porqué: el repo se entrega, y cada archivo debe seguir una línea lógica hacia el resultado; lo exploratorio va y viene y no la sigue.

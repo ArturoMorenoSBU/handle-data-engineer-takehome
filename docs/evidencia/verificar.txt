@@ -1,0 +1,39 @@
+$ make verificar
+All checks passed!
+28 files already formatted
+============================= test session starts ==============================
+collecting ... collected 31 items
+
+tests/test_spec.py::test_01_totales_con_baseline_y_despues_con_corrected PASSED
+tests/test_spec.py::test_02_identidad_por_aseguradora_broker_y_numero PASSED
+tests/test_spec.py::test_03_cada_recibo_pertenece_a_una_poliza_de_su_aseguradora_y_broker PASSED
+tests/test_spec.py::test_04_texto_valor_y_disposicion PASSED
+tests/test_spec.py::test_05_nombres_comunes_y_datos_propios_de_cada_fuente PASSED
+tests/test_spec.py::test_06_cargar_otra_vez_la_misma_foto_no_cambia_nada PASSED
+tests/test_spec.py::test_07_la_fila_repetida_es_un_solo_recibo_y_queda_registrada PASSED
+tests/test_spec.py::test_08_historial_con_una_sola_version_vigente PASSED
+tests/test_spec.py::test_09_el_orden_de_carga_no_cambia_el_resultado PASSED
+tests/test_spec.py::test_10_rehacer_desde_las_capturas_da_el_mismo_resultado PASSED
+tests/test_spec.py::test_11_procedencia_y_contexto_de_cada_captura PASSED
+tests/test_spec.py::test_12_completitud_de_cada_captura PASSED
+tests/test_spec.py::test_13_la_prima_no_entra_a_ninguna_suma PASSED
+tests/test_spec.py::test_14_solo_se_aplican_las_reglas_aceptadas PASSED
+tests/test_spec.py::test_15_comparacion_con_el_book PASSED
+tests/test_spec.py::test_16_el_comando_de_respuestas_trae_una_seccion_por_pregunta PASSED
+tests/test_spec.py::test_una_pagina_que_falla_o_cambia_de_forma_no_es_una_pagina_vacia[failure-fallo] PASSED
+tests/test_spec.py::test_una_pagina_que_falla_o_cambia_de_forma_no_es_una_pagina_vacia[drift-forma_no_reconocida] PASSED
+tests/test_spec.py::test_una_sesion_rechazada_queda_como_captura_fallida PASSED
+tests/test_spec.py::test_cambiar_como_se_lee_una_fuente_obliga_a_rehacer PASSED
+tests/test_valores.py::test_una_etiqueta_sin_regla_es_indeterminado_con_disposicion_valida PASSED
+tests/test_valores.py::test_un_estado_que_no_llega_es_indeterminado_y_no_suministrado PASSED
+tests/test_valores.py::test_tbd_solo_es_texto_especial_en_la_fuente_que_tiene_esa_regla PASSED
+tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-2.400,50-240050] PASSED
+tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-150,00-15000] PASSED
+tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-1.500-150000] PASSED
+tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-1500.00-None] PASSED
+tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[brujula-100.00-10000] PASSED
+tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[brujula-1,500.00-None] PASSED
+tests/test_valores.py::test_los_instantes_se_comparan_en_utc PASSED
+tests/test_valores.py::test_sin_una_pieza_obligatoria_la_configuracion_no_se_acepta PASSED
+
+============================== 31 passed in 0.52s ==============================
