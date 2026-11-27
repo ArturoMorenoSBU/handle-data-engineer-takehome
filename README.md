@@ -52,6 +52,19 @@ Si tienes `uv`, él consigue el Python correcto. Si no, se usa `python3`; cuando
 
 `make construir` arranca el portal de Brújula en tu máquina dos veces, con los datos iniciales y con una corrección, y lee las dos entregas de Aurora. El **book** es el inventario de pólizas que cada broker dice tener.
 
+## Cómo revisarlo en diez minutos
+
+1. **Constrúyelo y compara.** `make construir` y `make respuestas`. La salida debe coincidir con [docs/evidencia/respuestas.txt](docs/evidencia/respuestas.txt).
+2. **Sigue un número hasta su origen.** El recibo `R-102` cambió de 25.00 a 30.00. Cada versión dice de qué respuesta y de qué página salió:
+   ```bash
+   sqlite3 -header -column datos/base.sqlite "SELECT revision, monto, vigente, origen FROM gold_historial_recibos WHERE aseguradora = 'brujula' AND numero_recibo = 'R-102'"
+   ```
+3. **Rompe la fuente.** `make escenario E=failure` arranca el portal con una página que falla, y `make escenario E=drift` con una que cambia de forma. Los dos deben decir "4 declarados, 2 capturados", por qué, y que el total no está completo. Usan su propia carpeta: no tocan la base principal.
+4. **Acepta la propuesta dudosa.** En `config/reglas.toml`, cambia el estado de `AGENT-22` de `propuesta` a `aceptada` y corre `make rehacer` y `make respuestas`. El monto de `R-103` no se vuelve cero: ahora dos reglas aceptadas dicen cosas distintas sobre `TBD`, ninguna decide y el valor queda *inválido*. `make verificar` falla y nombra las dos. Deshazlo con `git checkout config/reglas.toml` y `make rehacer`.
+5. **Borra todo lo derivado.** `rm datos/base.sqlite`, luego `make rehacer` y `make respuestas`. Salen las mismas respuestas, sin volver a contactar el portal.
+6. **Corre las pruebas.** `make verificar`. Los nombres de las pruebas dicen qué comprueban; la lista está en [docs/evidencia/verificar.txt](docs/evidencia/verificar.txt).
+7. **Lee el código en el orden en que corre:** `captura.py` (guardar lo que llega), `bronze.py` (pasarlo a texto), `valores.py` (interpretar cada valor), `silver.py` (versiones y lo compartido), `gold.py` (las vistas). Son unas 1,500 líneas.
+
 ## Qué responde
 
 | Pregunta | Vista |

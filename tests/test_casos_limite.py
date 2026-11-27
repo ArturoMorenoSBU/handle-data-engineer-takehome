@@ -193,3 +193,17 @@ def test_dos_piezas_aceptadas_sobre_el_mismo_texto_no_se_aplican(landing, base, 
 def test_una_tabla_sin_filas_se_imprime(capsys):
     cli.imprimir_tabla(["regla", "estado"], [])
     assert capsys.readouterr().out.splitlines() == ["regla  estado", "-----  ------", "(sin filas)"]
+
+
+@pytest.mark.parametrize(
+    ("escenario", "causa"),
+    [("failure", "statement_temporarily_unavailable"), ("drift", "la llave 'receipts'")],
+)
+def test_el_comando_de_escenario_muestra_que_falto_y_por_que(escenario, causa, tmp_path, capsys):
+    ajeno = tmp_path / "base.sqlite"
+    ajeno.write_text("la base principal no se toca", encoding="utf-8")
+    cli.probar_escenario(FUENTES, tmp_path, CONFIG, escenario)
+    salida = capsys.readouterr().out
+    assert "alder   recibos  4          2          filas   1                   no" in salida
+    assert causa in salida
+    assert ajeno.read_text(encoding="utf-8") == "la base principal no se toca"

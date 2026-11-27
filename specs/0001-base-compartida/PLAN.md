@@ -29,6 +29,7 @@ Se construyen los 35 criterios obligatorios (CA-01 a CA-35). De los deseables sa
 - Datos generados en `datos/` (capturas y base); git los ignora, porque se rehacen con un comando.
 - `make construir` arranca el portal en `baseline` y en `corrected`, captura las dos aseguradoras y el book, y carga.
 - `make respuestas` muestra las siete respuestas preparadas. `make verificar` corre `ruff` y `pytest`.
+- `make escenario E=failure` captura Brújula en un escenario de falla y lo carga en su propia carpeta, aparte de la base principal.
 
 ## Rebanadas
 Una rebanada es un corte delgado que funciona de punta a punta. La primera, la bala trazadora, es la más delgada posible: prueba que todas las piezas se conectan.
