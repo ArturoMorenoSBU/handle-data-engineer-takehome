@@ -1,0 +1,2 @@
+Qué: una base de datos local que reúne las pólizas y los recibos de Brújula y Aurora, conserva lo que cada aseguradora dijo y de dónde salió, y deja ver qué se sabe y qué no.
+Por qué: un broker necesita saber qué pólizas y cobros le muestra cada aseguradora y contrastarlo con lo que él dice tener. Conectarse a cada fuente no alcanza: los registros cambian, los identificadores solo valen dentro de su fuente, faltan valores y lo que se aprende de cada aseguradora se pierde en cada integración.
