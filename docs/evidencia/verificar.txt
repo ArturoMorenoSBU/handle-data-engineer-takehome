@@ -1,9 +1,23 @@
 $ make verificar
 All checks passed!
-28 files already formatted
+30 files already formatted
 ============================= test session starts ==============================
-collecting ... collected 31 items
+collecting ... collected 47 items
 
+tests/test_casos_limite.py::test_una_revision_menor_que_llega_despues_no_reemplaza_a_la_vigente PASSED
+tests/test_casos_limite.py::test_una_poliza_que_cambia_tiene_dos_versiones_y_una_vigente PASSED
+tests/test_casos_limite.py::test_un_archivo_que_el_manifest_lista_y_no_llega_deja_la_captura_incompleta PASSED
+tests/test_casos_limite.py::test_un_manifest_que_no_coincide_con_el_descriptor_no_se_lee PASSED
+tests/test_casos_limite.py::test_una_fecha_de_foto_sin_huso_no_se_lee PASSED
+tests/test_casos_limite.py::test_una_marca_inicial_en_el_archivo_no_mezcla_brokers PASSED
+tests/test_casos_limite.py::test_un_encabezado_sin_un_campo_de_identidad_no_se_lee PASSED
+tests/test_casos_limite.py::test_una_respuesta_sin_fecha_de_foto_no_detiene_la_carga PASSED
+tests/test_casos_limite.py::test_el_total_mira_la_ultima_captura_no_una_falla_ya_superada PASSED
+tests/test_casos_limite.py::test_construir_solo_borra_lo_que_genera PASSED
+tests/test_casos_limite.py::test_si_rehacer_falla_la_base_anterior_se_conserva PASSED
+tests/test_casos_limite.py::test_una_pieza_que_el_codigo_no_sabe_cumplir_detiene_la_carga PASSED
+tests/test_casos_limite.py::test_dos_piezas_aceptadas_sobre_el_mismo_texto_no_se_aplican PASSED
+tests/test_casos_limite.py::test_una_tabla_sin_filas_se_imprime PASSED
 tests/test_spec.py::test_01_totales_con_baseline_y_despues_con_corrected PASSED
 tests/test_spec.py::test_02_identidad_por_aseguradora_broker_y_numero PASSED
 tests/test_spec.py::test_03_cada_recibo_pertenece_a_una_poliza_de_su_aseguradora_y_broker PASSED
@@ -30,10 +44,12 @@ tests/test_valores.py::test_tbd_solo_es_texto_especial_en_la_fuente_que_tiene_es
 tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-2.400,50-240050] PASSED
 tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-150,00-15000] PASSED
 tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-1.500-150000] PASSED
+tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-1500,00-150000] PASSED
+tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-15.00,00-None] PASSED
 tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[aurora-1500.00-None] PASSED
 tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[brujula-100.00-10000] PASSED
 tests/test_valores.py::test_cada_fuente_se_lee_con_su_propio_formato_de_monto[brujula-1,500.00-None] PASSED
 tests/test_valores.py::test_los_instantes_se_comparan_en_utc PASSED
 tests/test_valores.py::test_sin_una_pieza_obligatoria_la_configuracion_no_se_acepta PASSED
 
-============================== 31 passed in 0.52s ==============================
+============================== 47 passed in 1.09s ==============================
