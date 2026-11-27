@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 345" width="1040" height="345" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img" aria-label="Recorrido de un dato: de las fuentes a landing, bronze, silver y gold, con las reglas de cada fuente entrando en bronze y en silver">
+  <defs>
+    <marker id="punta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#4b5563"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1040" height="345" rx="10" fill="#ffffff" stroke="#d0d7de"/>
+
+  <!-- Fuentes -->
+  <rect x="16" y="24" width="190" height="252" rx="8" fill="#f6f8fa" stroke="#8c959f"/>
+  <text x="111" y="46" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2328">Fuentes</text>
+  <g font-size="12.5" fill="#1f2328" text-anchor="middle">
+    <rect x="31" y="58" width="160" height="60" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="111" y="82" font-weight="700">Brújula</text>
+    <text x="111" y="101">portal · JSON · USD</text>
+    <rect x="31" y="130" width="160" height="60" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="111" y="154" font-weight="700">Aurora</text>
+    <text x="111" y="173">archivos CSV · BRL</text>
+    <rect x="31" y="202" width="160" height="60" rx="6" fill="#ffffff" stroke="#8c959f"/>
+    <text x="111" y="226" font-weight="700">Book</text>
+    <text x="111" y="245">lo que el broker dice tener</text>
+  </g>
+
+  <!-- Capas -->
+  <g font-size="12.5" fill="#1f2328" text-anchor="middle">
+    <rect x="240" y="85" width="172" height="120" rx="8" fill="#eef2f7" stroke="#57606a" stroke-width="1.5"/>
+    <text x="326" y="112" font-size="15" font-weight="700">landing</text>
+    <text x="326" y="138">cada respuesta o archivo</text>
+    <text x="326" y="156">tal como llegó,</text>
+    <text x="326" y="174">con su contexto</text>
+
+    <rect x="440" y="85" width="172" height="120" rx="8" fill="#f6e6d8" stroke="#a9632a" stroke-width="1.5"/>
+    <text x="526" y="112" font-size="15" font-weight="700">bronze</text>
+    <text x="526" y="138">lo que dijo cada fuente,</text>
+    <text x="526" y="156">como texto</text>
+
+    <rect x="640" y="85" width="172" height="120" rx="8" fill="#eceff1" stroke="#607d8b" stroke-width="1.5"/>
+    <text x="726" y="112" font-size="15" font-weight="700">silver</text>
+    <text x="726" y="138">pólizas, recibos</text>
+    <text x="726" y="156">y sus versiones,</text>
+    <text x="726" y="174">con nombres comunes</text>
+
+    <rect x="840" y="85" width="172" height="120" rx="8" fill="#fff4cc" stroke="#b8860b" stroke-width="1.5"/>
+    <text x="926" y="112" font-size="15" font-weight="700">gold</text>
+    <text x="926" y="138">siete respuestas</text>
+    <text x="926" y="156">preparadas</text>
+  </g>
+
+  <!-- Flechas del recorrido -->
+  <g stroke="#4b5563" stroke-width="1.8" fill="none" marker-end="url(#punta)">
+    <path d="M206,145 L238,145"/>
+    <path d="M412,145 L438,145"/>
+    <path d="M612,145 L638,145"/>
+    <path d="M812,145 L838,145"/>
+  </g>
+
+  <!-- Reglas -->
+  <rect x="440" y="264" width="372" height="58" rx="8" fill="#e8f0fe" stroke="#3b63a8" stroke-width="1.5"/>
+  <text x="626" y="288" text-anchor="middle" font-size="14" font-weight="700" fill="#1f2328">Reglas de cada fuente</text>
+  <text x="626" y="307" text-anchor="middle" font-size="12.5" fill="#1f2328">solo corren las aceptadas</text>
+  <g stroke="#3b63a8" stroke-width="1.6" fill="none" stroke-dasharray="5 4" marker-end="url(#punta)">
+    <path d="M526,264 L526,208"/>
+    <path d="M726,264 L726,208"/>
+  </g>
+  <g font-size="11.5" fill="#3b4a5f">
+    <text x="518" y="232" text-anchor="end">cómo se separan</text>
+    <text x="518" y="247" text-anchor="end">registros y campos</text>
+    <text x="734" y="232">formatos y</text>
+    <text x="734" y="247">significado</text>
+  </g>
+</svg>

@@ -6,26 +6,7 @@ Este repo reúne en una base de datos local las pólizas y los recibos de dos as
 
 ## Cómo fluye un dato
 
-```mermaid
-flowchart LR
-    subgraph F["Fuentes"]
-        direction TB
-        B["Brújula<br/>portal · JSON · USD"]
-        A["Aurora<br/>archivos CSV · BRL"]
-        K["Book<br/>lo que el broker dice tener"]
-    end
-    L["<b>landing</b><br/>cada respuesta o archivo<br/>tal como llegó, con su contexto"]
-    Z["<b>bronze</b><br/>lo que dijo cada fuente,<br/>como texto"]
-    S["<b>silver</b><br/>pólizas, recibos y versiones<br/>con nombres comunes"]
-    G["<b>gold</b><br/>siete respuestas<br/>preparadas"]
-    R[("Reglas de cada fuente<br/>solo corren las aceptadas")]
-    B --> L
-    A --> L
-    K --> L
-    L --> Z --> S --> G
-    R -. "cómo se separan<br/>registros y campos" .-> Z
-    R -. "formatos y<br/>significado" .-> S
-```
+![Recorrido de un dato: de las fuentes a landing, bronze, silver y gold, con las reglas de cada fuente entrando en bronze y en silver](docs/img/recorrido-de-un-dato.svg)
 
 Landing es lo único que no se puede volver a obtener, porque la fuente ya cambió. Todo lo demás se borra y se rehace desde ahí con un comando.
 
