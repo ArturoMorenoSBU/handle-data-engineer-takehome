@@ -1,0 +1,51 @@
+/* Real carrier records, compact controls, no decorative dashboard. */
+* { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+body { margin: 0; background: var(--color-paper); color: var(--color-ink); font: var(--text-body)/1.5 var(--font-body); }
+a { color: var(--color-accent); text-underline-offset: 0.2em; }
+a:hover { text-decoration-thickness: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 3px; }
+header { display: flex; align-items: center; gap: var(--space-xl); padding: var(--space-lg) var(--space-xl); border-bottom: 1px solid var(--color-rule); background: var(--color-surface); }
+.brand { font-weight: 800; font-size: 1.375rem; color: var(--color-ink); text-decoration: none; white-space: nowrap; }
+.brand span { font-size: var(--text-small); font-weight: 400; color: var(--color-muted); }
+header nav { display: flex; gap: var(--space-lg); }
+header form { margin-left: auto; }
+main { padding: var(--space-xl); max-width: 90rem; margin-inline: auto; min-height: 24rem; }
+h1 { margin: 0; font-size: var(--text-title); line-height: 1.2; letter-spacing: -0.025em; overflow-wrap: anywhere; min-width: 0; }
+p { max-width: 65ch; }
+.context, .source-note, .as-of, footer { color: var(--color-muted); font-size: var(--text-small); }
+.heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-md); }
+.table-scroll { overflow-x: auto; margin-top: var(--space-lg); border: 1px solid var(--color-rule); background: var(--color-surface); }
+table { width: 100%; border-collapse: collapse; text-align: left; font-size: var(--text-small); }
+caption { text-align: left; padding: var(--space-sm); font-weight: 700; border-bottom: 1px solid var(--color-rule); }
+th, td { padding: var(--space-sm) var(--space-md); border-bottom: 1px solid var(--color-rule); white-space: nowrap; }
+th { background: var(--color-tint); font-weight: 700; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--color-paper); }
+.field-amount { text-align: right; font-variant-numeric: tabular-nums; }
+.field-receipt_number, .field-policy_number, code { font-family: var(--font-mono); font-size: 0.9em; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); margin-top: var(--space-lg); font-size: var(--text-small); }
+.pager > span:first-child, .pager > span:last-child { color: var(--color-muted); }
+.export { font-size: var(--text-small); margin-top: var(--space-xl); }
+.login { max-width: 36rem; margin-block: var(--space-lg); }
+.login-form { display: grid; gap: var(--space-xs); max-width: 25rem; margin-block: var(--space-xl); }
+input { width: 100%; padding: var(--space-sm); border: 1px solid var(--color-muted); border-radius: var(--radius); font: inherit; color: var(--color-ink); background: var(--color-surface); margin-bottom: var(--space-sm); }
+button { padding: var(--space-sm) var(--space-lg); border: 1px solid var(--color-accent); border-radius: var(--radius); color: var(--color-accent); background: var(--color-surface); font: 700 var(--text-small) var(--font-body); cursor: pointer; }
+button:hover { background: var(--color-tint); }
+button:active { border-width: 2px; }
+button:disabled, input:disabled { color: var(--color-muted); background: var(--color-tint); cursor: not-allowed; }
+a:active { text-decoration-thickness: 3px; }
+.quiet { border-color: var(--color-rule); color: var(--color-muted); }
+.demo-note { border-left: 3px solid var(--color-rule); padding-left: var(--space-md); font-size: var(--text-small); }
+.notice { padding: var(--space-md); border: 1px solid var(--color-ink); background: var(--color-tint); }
+footer { padding: var(--space-lg) var(--space-xl); border-top: 1px solid var(--color-rule); }
+.skip { position: absolute; left: var(--space-md); top: -4rem; padding: var(--space-sm); background: var(--color-surface); }
+.skip:focus { top: var(--space-sm); }
+@media (max-width: 650px) {
+  header { flex-wrap: wrap; padding: var(--space-md); gap: var(--space-md); }
+  header nav { order: 3; flex-basis: 100%; }
+  main, footer { padding: var(--space-lg) var(--space-md); }
+  .pager { flex-wrap: wrap; }
+  .as-of { display: block; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }

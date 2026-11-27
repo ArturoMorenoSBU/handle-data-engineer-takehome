@@ -1,0 +1,4 @@
+corretora;numero_apolice;segurado_ref;ramo;situacao;inicio_vigencia;fim_vigencia;moeda;premio_total
+alder;P-100;CLI-001;AUTO;ATIVA;01/01/2026;31/12/2026;BRL;1.500,00
+alder;000123;CLI-002;PATRIMONIAL;ATIVA;01/02/2026;31/01/2027;BRL;2.400,50
+birch;P-100;CLI-010;AUTO;ATIVA;01/01/2026;31/12/2026;BRL;800,00

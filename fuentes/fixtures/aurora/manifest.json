@@ -1,0 +1,22 @@
+{
+  "carrier_id": "aurora",
+  "carrier_name": "Aurora Demo",
+  "fictional": true,
+  "scope": "Synthetic sample of the supplied broker books; not proof of a complete real carrier population",
+  "delimiter": ";",
+  "encoding": "UTF-8",
+  "date_format": "DD/MM/YYYY",
+  "decimal_separator": ",",
+  "thousands_separator": ".",
+  "currency": "BRL",
+  "versions": {
+    "baseline": {
+      "source_as_of": "2026-11-02T12:00:00-03:00",
+      "files": ["policies.csv", "receipts-baseline.csv"]
+    },
+    "corrected": {
+      "source_as_of": "2026-11-03T12:00:00-03:00",
+      "files": ["policies.csv", "receipts-corrected.csv"]
+    }
+  }
+}

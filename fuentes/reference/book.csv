@@ -1,0 +1,9 @@
+carrier,broker,policy_number,customer_reference
+brujula,alder,P-100,AL-01
+brujula,alder,P-200,AL-02
+brujula,alder,P-300,AL-03
+brujula,birch,P-100,BI-01
+aurora,alder,P-100,AL-01
+aurora,alder,000123,AL-04
+aurora,alder,000999,AL-05
+aurora,birch,P-100,BI-01

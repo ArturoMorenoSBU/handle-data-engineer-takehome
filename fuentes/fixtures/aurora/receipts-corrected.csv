@@ -1,0 +1,5 @@
+corretora;numero_apolice;numero_parcela;id_cobranca;valor_parcela;moeda;status_cobranca;vencimento;data_pagamento;revisao
+alder;P-100;1;R-100;1.500,00;BRL;LIQUIDADO;10/11/2026;03/11/2026;2
+alder;P-100;2;R-101;150,00;BRL;LIQUIDADO;10/10/2026;09/10/2026;1
+alder;000123;1;R-102;2.400,50;BRL;EM_CONCILIACAO;31/11/2026;;1
+birch;P-100;1;R-100;800,00;BRL;EM_ABERTO;30/11/2026;;1
